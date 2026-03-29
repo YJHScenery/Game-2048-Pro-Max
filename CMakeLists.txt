@@ -26,13 +26,19 @@ include_directories(
 
 
 set(CPP_HEADER_FILES
-        src/cpp/sources/Logic2048Base.cpp
-        src/cpp/headers/Logic2048Base.h
+        src/cpp/headers/logic_2048_pm.h
+        src/cpp/headers/cuda_interface.h
 
 )
 
 set(CPP_SOURCE_FILES
+        src/cpp/sources/logic_2048_pm.cpp
         src/cpp/sources/main.cpp
+
+)
+
+set(CUDA_SOURCE_FILES
+        src/cpp/cuda/cuda_interface.cu
 )
 
 set(RESOURCE_FILES
@@ -53,7 +59,9 @@ find_package(Qt6 COMPONENTS
 add_executable(${PROJECT_NAME_CUSTOM}
         ${CPP_HEADER_FILES}
         ${CPP_SOURCE_FILES}
+        ${CUDA_SOURCE_FILES}
         ${RESOURCE_FILES}
+
         )
 
 foreach (QT_LIB ${QT_PACKAGES_LIST})
