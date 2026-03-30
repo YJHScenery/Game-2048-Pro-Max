@@ -5,9 +5,15 @@
 #ifndef GAME_2048_QUICK_CUDAINTERFACE_H
 #define GAME_2048_QUICK_CUDAINTERFACE_H
 
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
+#if __has_include(<cuda_runtime.h>)
+	#include <cuda_runtime.h>
+	#include <device_launch_parameters.h>
+#else
+	#define CUDA_UNAVAILABLE
+#endif
 
+
+#ifndef CUDA_UNAVAILABLE
 #include <cstddef>
 #include <cstdint>
 #include <utility>
@@ -34,5 +40,5 @@ void cuda_move_lines_ld(double *h_data, const CudaLineDesc *h_lines, std::size_t
 void cuda_move_lines_uld(double *h_data, const CudaLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
 						 cudaStream_t stream = nullptr);
 
-
+#endif
 #endif //GAME_2048_QUICK_CUDAINTERFACE_H

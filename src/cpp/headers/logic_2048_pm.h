@@ -11,11 +11,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <type_traits>
 #include <vector>
 #include <random>
 
-#include "cuda_interface.h"
+#include "hpc_interface.h"
 
 /**
  * @class Logic2048_tm
@@ -52,6 +53,8 @@ public:
 
     Logic2048_tm() = default;
 
+    explicit Logic2048_tm(data_mesh_type_ data): m_data(std::move(data)) {}
+
     /**
      * 2048移动操作
      * @param dim 维度序列号
@@ -59,10 +62,15 @@ public:
      */
     void operate(size_type_ dim, MoveDirection dir);
 
+    void outputData();
+
     [[nodiscard]] data_mesh_type_ getData() { return m_data; }
     [[nodiscard]] const data_mesh_type_ &getDataRef() const { return m_data; }
 
     constexpr static size_mesh_type_ getSizeArray() { return sizes_; }
+
+    template<typename T, size_t NDims>
+    static void printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor, int indent = 0);
 
 private:
 
@@ -131,7 +139,7 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size
     const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
                               ((dir == MoveDirection::Negative) ? static_cast<std::int64_t>(1) : static_cast<std::int64_t>(-1));
 
-    std::vector<CudaLineDesc> lines;
+    std::vector<StandardLineDesc> lines;
     lines.reserve(static_cast<std::size_t>(line_count));
 
     std_size_mesh_type_ idx{};
@@ -143,7 +151,7 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size
         for (size_type_ d = 0; d < Dimension; ++d)
             offset += static_cast<std::uint64_t>(idx[d] * strides_[d]);
 
-        lines.push_back(CudaLineDesc{offset, step});
+        lines.push_back(StandardLineDesc{offset, step});
 
         // odometer increment on all dims except dim
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
@@ -166,50 +174,91 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size
         return;
 
     meta_type_ *raw = m_data.data();
-    if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)
-    {
-        std::vector<long long> buf(total_elems);
-        for (size_type_ i = 0; i < total_elems; ++i)
-            buf[i] = static_cast<long long>(raw[i]);
 
-        cuda_move_lines_ll(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
-
-        for (size_type_ i = 0; i < total_elems; ++i)
-            raw[i] = static_cast<meta_type_>(buf[i]);
+    std::vector<long long> buf(total_elems);
+    for (size_type_ i = 0; i < total_elems; ++i) {
+        buf[i] = static_cast<long long>(raw[i]);
     }
-    else if constexpr (std::is_integral_v<meta_type_> && std::is_unsigned_v<meta_type_>)
-    {
-        std::vector<unsigned long long> buf(total_elems);
-        for (size_type_ i = 0; i < total_elems; ++i)
-            buf[i] = static_cast<unsigned long long>(raw[i]);
 
-        cuda_move_lines_ull(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
 
-        for (size_type_ i = 0; i < total_elems; ++i)
-            raw[i] = static_cast<meta_type_>(buf[i]);
+    // move_lines(
+    //     buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len), nullptr
+    //     );
+
+    for (size_type_ i = 0; i < total_elems; ++i) {
+        raw[i] = static_cast<meta_type_>(buf[i]);
     }
-    else if constexpr (std::is_floating_point_v<meta_type_> && std::is_signed_v<meta_type_>)
-    {
-        std::vector<double> buf(total_elems);
-        for (size_type_ i = 0; i < total_elems; ++i)
-            buf[i] = static_cast<double>(raw[i]);
+    // if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)
+    // {
+    //     std::vector<long long> buf(total_elems);
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         buf[i] = static_cast<long long>(raw[i]);
+    //
+    //     cuda_move_lines_ll(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    //
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         raw[i] = static_cast<meta_type_>(buf[i]);
+    // }
+    // else if constexpr (std::is_integral_v<meta_type_> && std::is_unsigned_v<meta_type_>)
+    // {
+    //     std::vector<unsigned long long> buf(total_elems);
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         buf[i] = static_cast<unsigned long long>(raw[i]);
+    //
+    //     cuda_move_lines_ull(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    //
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         raw[i] = static_cast<meta_type_>(buf[i]);
+    // }
+    // else if constexpr (std::is_floating_point_v<meta_type_> && std::is_signed_v<meta_type_>)
+    // {
+    //     std::vector<double> buf(total_elems);
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         buf[i] = static_cast<double>(raw[i]);
+    //
+    //     cuda_move_lines_ld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    //
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         raw[i] = static_cast<meta_type_>(buf[i]);
+    // }
+    // else
+    // {
+    //     // "unsigned floating" isn't a standard C++ type; keep a dedicated entry for symmetry.
+    //     std::vector<double> buf(total_elems);
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         buf[i] = static_cast<double>(raw[i]);
+    //
+    //     cuda_move_lines_uld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    //
+    //     for (size_type_ i = 0; i < total_elems; ++i)
+    //         raw[i] = static_cast<meta_type_>(buf[i]);
+    // }
+}
 
-        cuda_move_lines_ld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+CURRENT_TEMPLATE_DEFINITION
+void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::outputData()
+{
+    printTensor<meta_type_, Dimension>(m_data, 0);
+}
 
-        for (size_type_ i = 0; i < total_elems; ++i)
-            raw[i] = static_cast<meta_type_>(buf[i]);
-    }
-    else
-    {
-        // "unsigned floating" isn't a standard C++ type; keep a dedicated entry for symmetry.
-        std::vector<double> buf(total_elems);
-        for (size_type_ i = 0; i < total_elems; ++i)
-            buf[i] = static_cast<double>(raw[i]);
 
-        cuda_move_lines_uld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
-
-        for (size_type_ i = 0; i < total_elems; ++i)
-            raw[i] = static_cast<meta_type_>(buf[i]);
+CURRENT_TEMPLATE_DEFINITION
+template<typename T, size_t NDims>
+void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor> &tensor,
+    int indent)
+{
+    std::string prefix(indent, ' ');
+    if constexpr (NDims == 1) {
+        for (int i = 0; i < tensor.dimension(0); ++i)
+            std::cout << prefix << tensor(i) << " ";
+        std::cout << "\n";
+    } else {
+        for (int i = 0; i < tensor.dimension(0); ++i) {
+            std::cout << prefix << "[Slice " << i << "]\n";
+            auto slice = tensor.chip(i, 0); // 沿第0维切片，偏移量为i
+            printTensor<T, NDims - 1>(slice, indent + 2);
+        }
     }
 }
 
