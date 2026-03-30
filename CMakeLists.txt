@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 4.2)
 project(Game_2048_Quick)
 
-set(PROJECT_NAME_CUSTOM Game_2048_Quick)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
-set(CMAKE_CUDA_STANDARD 17)          # CUDA C++17
+set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_ARCHITECTURES 90)     # ✅ RTX 5070 专属算力9.0（关键！）
 set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
@@ -21,13 +20,14 @@ set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/headers
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/include/Eigen
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Eigen
 )
 
 
 set(CPP_HEADER_FILES
         src/cpp/headers/logic_2048_pm.h
         src/cpp/headers/cuda_interface.h
+        src/cpp/headers/tmp_utility.h
 
 )
 
@@ -42,7 +42,7 @@ set(CUDA_SOURCE_FILES
 )
 
 set(RESOURCE_FILES
-        src/resources/resouces.qrc
+        src/resources/resources.qrc
         src/qml/qml.qrc
 )
 
@@ -56,7 +56,7 @@ find_package(Qt6 COMPONENTS
         ${QT_PACKAGES_LIST}
         REQUIRED)
 
-add_executable(${PROJECT_NAME_CUSTOM}
+add_executable(${PROJECT_NAME}
         ${CPP_HEADER_FILES}
         ${CPP_SOURCE_FILES}
         ${CUDA_SOURCE_FILES}
@@ -65,7 +65,7 @@ add_executable(${PROJECT_NAME_CUSTOM}
         )
 
 foreach (QT_LIB ${QT_PACKAGES_LIST})
-    target_link_libraries(${PROJECT_NAME_CUSTOM} PRIVATE
+    target_link_libraries(${PROJECT_NAME} PRIVATE
             Qt::${QT_LIB}
     )
 endforeach ()

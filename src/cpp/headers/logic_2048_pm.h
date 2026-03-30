@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <vector>
+#include <random>
 
 #include "cuda_interface.h"
 
@@ -30,85 +31,117 @@ enum class MoveDirection : char
     Positive = 1,  // 沿此维度下索引增大方向
 };
 
-template <typename MetaType = size_t, size_t Dimension = 2, size_t... DimensionSize>
+template <typename MetaType = size_t, typename SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
     requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
 class Logic2048_tm
 {
 public:
-    using meta_type_ = MetaType; //! 2048 的元数据类型
-    using data_type_ = Eigen::Tensor<meta_type_, Dimension, Eigen::RowMajor>; //! @brief 张量数据类型
-    using size_type_ = Eigen::array<size_t, Dimension>; //! @brief 此类型定义了棋盘的尺寸
-    using array_index_type_ = Eigen::array<size_t, Dimension - 1>; //! @brief 此类型定义了查找某一个线性数组的下标所需要的类型
+    using meta_type_ = MetaType;                                                               //! 2048 的元数据类型
+
+    using size_type_ = SizeType;                                                               //! 框架下标与尺寸标准类型
+
+    using data_mesh_type_ = Eigen::Tensor<meta_type_, Dimension, Eigen::RowMajor, size_type_>; //! @brief 张量数据类型，m_data 的类型
+
+    using size_mesh_type_ = Eigen::array<size_type_, Dimension>;                               //! @brief 此类型定义了棋盘的尺寸类型，可以用来创建下标
+
+    using std_size_mesh_type_ = std::array<size_type_, Dimension>;
+
+    using array_index_mesh_type_ = Eigen::array<size_type_, Dimension - 1>; //! @brief 此类型定义了查找某一个线性数组的下标所需要的类型
+
+    using location_meta_type_ = std::pair<size_mesh_type_, meta_type_>; //! @brief 用于构建稀疏矩阵或定位单一元数据
+
+    Logic2048_tm() = default;
 
     /**
      * 2048移动操作
      * @param dim 维度序列号
      * @param dir 移动方向
      */
-    void move(size_t dim, MoveDirection dir);
+    void operate(size_type_ dim, MoveDirection dir);
 
-    [[nodiscard]] data_type_ getData() { return m_data; }
-    [[nodiscard]] const data_type_ &getDataRef() const { return m_data; }
+    [[nodiscard]] data_mesh_type_ getData() { return m_data; }
+    [[nodiscard]] const data_mesh_type_ &getDataRef() const { return m_data; }
 
-    constexpr static size_type_ getSizeArray() { return sizes_; }
+    constexpr static size_mesh_type_ getSizeArray() { return sizes_; }
 
 private:
-    static constexpr size_type_ sizes_{DimensionSize...};
-    data_type_ m_data{sizes_};
 
+    /**
+     * 构建 @ref strides_ 编译期常量
+     * @return 返回生成的 strides 编译期数据
+     */
+    constexpr static std_size_mesh_type_ buildStrides();
 
+    /**
+     * 在 @ref m_data 中为 0 的位置添加给定数目的随机预设值，取值范围由 presetValues 给出
+     * @tparam Container 包含预设值的容器类型
+     * @param numCount 添加值的数量
+     * @param presetValues 预设值列表
+     * @return 添加成功后返回 true，否则返回 false
+     */
+    template <template <typename Val_T, typename...> typename Container>
+    bool setRandomLocationValue(size_t numCount, const Container<meta_type_>& presetValues);
+
+    constexpr static size_mesh_type_ sizes_{DimensionSize...};
+    constexpr static size_type_ total_elems_{(DimensionSize * ...)};
+    constexpr static std_size_mesh_type_ strides_{buildStrides()};
+
+    data_mesh_type_ m_data{sizes_};
 };
 
-#define CURRENT_TEMPLATE_DEFINITION template <typename MetaType, size_t Dimension, size_t... DimensionSize> \
-requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
+
+
+#define CURRENT_TEMPLATE_DEFINITION template <typename MetaType, typename SizeType, SizeType Dimension, SizeType... DimensionSize> \
+    requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
 
 CURRENT_TEMPLATE_DEFINITION
-void Logic2048_tm<MetaType, Dimension, DimensionSize...>::move(size_t dim, MoveDirection dir)
+constexpr typename Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::std_size_mesh_type_ Logic2048_tm<
+MetaType, SizeType, Dimension, DimensionSize...>::buildStrides()
+{
+    {
+        std_size_mesh_type_ strides{};
+        strides[Dimension - 1] = 1;
+        for (size_type_ d = Dimension - 1; d-- > 0;)
+        {
+            strides[d] = strides[d + 1] * sizes_[d + 1];
+        }
+        return strides;
+    }
+}
+
+CURRENT_TEMPLATE_DEFINITION
+void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size_type_ dim, const MoveDirection dir)
 {
     if (dim >= Dimension)
         return;
 
-    const auto sizes = sizes_;
-    const std::size_t line_len = sizes[dim];
+    const size_type_ line_len{sizes_[dim]};
+
     if (line_len == 0)
         return;
 
-    std::array<std::size_t, Dimension> strides{};
-    strides[Dimension - 1] = 1;
-    for (std::size_t d = Dimension - 1; d-- > 0;)
-    {
-        strides[d] = strides[d + 1] * sizes[d + 1];
-    }
+    constexpr size_type_ total_elems = total_elems_;
 
-    std::size_t line_count = 1;
-    for (std::size_t d = 0; d < Dimension; ++d)
-    {
-        if (d == dim)
-            continue;
-        line_count *= sizes[d];
-    }
-
-    const std::size_t total_elems = static_cast<std::size_t>(m_data.size());
-    if (line_count * line_len != total_elems)
+    if (total_elems % line_len != 0)
         return;
 
-    const std::size_t start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
-    const std::int64_t step = static_cast<std::int64_t>(strides[dim]) *
+    const size_type_ line_count = total_elems / line_len;
+
+    const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
+    const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
                               ((dir == MoveDirection::Negative) ? static_cast<std::int64_t>(1) : static_cast<std::int64_t>(-1));
 
     std::vector<CudaLineDesc> lines;
-    lines.reserve(line_count);
+    lines.reserve(static_cast<std::size_t>(line_count));
 
-    std::array<std::size_t, Dimension> idx{};
-    for (std::size_t d = 0; d < Dimension; ++d)
-        idx[d] = 0;
+    std_size_mesh_type_ idx{};
     idx[dim] = start_index;
 
     while (true)
     {
         std::uint64_t offset = 0;
-        for (std::size_t d = 0; d < Dimension; ++d)
-            offset += static_cast<std::uint64_t>(idx[d] * strides[d]);
+        for (size_type_ d = 0; d < Dimension; ++d)
+            offset += static_cast<std::uint64_t>(idx[d] * strides_[d]);
 
         lines.push_back(CudaLineDesc{offset, step});
 
@@ -116,11 +149,11 @@ void Logic2048_tm<MetaType, Dimension, DimensionSize...>::move(size_t dim, MoveD
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
         for (; carry_dim >= 0; --carry_dim)
         {
-            const std::size_t d = static_cast<std::size_t>(carry_dim);
+            const auto d = static_cast<size_type_>(carry_dim);
             if (d == dim)
                 continue;
             ++idx[d];
-            if (idx[d] < sizes[d])
+            if (idx[d] < sizes_[d])
                 break;
             idx[d] = 0;
         }
@@ -129,56 +162,62 @@ void Logic2048_tm<MetaType, Dimension, DimensionSize...>::move(size_t dim, MoveD
             break;
     }
 
-    if (lines.size() != line_count)
+    if (lines.size() != static_cast<std::size_t>(line_count))
         return;
 
     meta_type_ *raw = m_data.data();
     if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)
     {
         std::vector<long long> buf(total_elems);
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             buf[i] = static_cast<long long>(raw[i]);
 
-        cuda_move_lines_ll(buf.data(), lines.data(), line_count, line_len);
+        cuda_move_lines_ll(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
 
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             raw[i] = static_cast<meta_type_>(buf[i]);
     }
     else if constexpr (std::is_integral_v<meta_type_> && std::is_unsigned_v<meta_type_>)
     {
         std::vector<unsigned long long> buf(total_elems);
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             buf[i] = static_cast<unsigned long long>(raw[i]);
 
-        cuda_move_lines_ull(buf.data(), lines.data(), line_count, line_len);
+        cuda_move_lines_ull(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
 
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             raw[i] = static_cast<meta_type_>(buf[i]);
     }
     else if constexpr (std::is_floating_point_v<meta_type_> && std::is_signed_v<meta_type_>)
     {
         std::vector<double> buf(total_elems);
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             buf[i] = static_cast<double>(raw[i]);
 
-        cuda_move_lines_ld(buf.data(), lines.data(), line_count, line_len);
+        cuda_move_lines_ld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
 
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             raw[i] = static_cast<meta_type_>(buf[i]);
     }
     else
     {
         // "unsigned floating" isn't a standard C++ type; keep a dedicated entry for symmetry.
         std::vector<double> buf(total_elems);
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             buf[i] = static_cast<double>(raw[i]);
 
-        cuda_move_lines_uld(buf.data(), lines.data(), line_count, line_len);
+        cuda_move_lines_uld(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
 
-        for (std::size_t i = 0; i < total_elems; ++i)
+        for (size_type_ i = 0; i < total_elems; ++i)
             raw[i] = static_cast<meta_type_>(buf[i]);
     }
 }
 
+CURRENT_TEMPLATE_DEFINITION
+template <template <typename Val_T, typename...> typename Container>
+bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::setRandomLocationValue(size_t numCount, const Container<meta_type_>& presetValues)
+{
+    return false;
+}
 
 #endif // GAME_2048_QUICK_LOGIC2048BASE_H

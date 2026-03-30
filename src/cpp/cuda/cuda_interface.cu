@@ -4,7 +4,7 @@
 #include <string>
 #include <stdexcept>
 
-static inline void cuda_throw_if_failed(cudaError_t err, const char *what)
+static void cuda_throw_if_failed(cudaError_t err, const char *what)
 {
     if (err != cudaSuccess)
     {

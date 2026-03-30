@@ -2,6 +2,7 @@
 #include <QPushButton>
 #include <iostream>
 #include <cuda_runtime.h>
+#include "logic_2048_pm.h"
 
 
 #define OUTPUT_STREAM std::cout
@@ -38,12 +39,14 @@ int testCuda()
     OUTPUT_STREAM << "=====================================" << std::endl;
     OUTPUT_STREAM << "CUDA Toolkit Test Successfully! " << std::endl;
 
+
     return 0;
 }
 
 int main(int argc, char* argv[]) {
     // QApplication a(argc, argv);
-
+    Logic2048_tm<size_t, size_t, 3, 4, 4, 4> TestObject{};
+    TestObject.operate(3, MoveDirection::Negative);
     testCuda();
     return 0;
 
