@@ -72,8 +72,7 @@ int main(int argc, char *argv[])
     };
 
     // 步骤2: 创建4x4x4 Tensor
-    Logic2048_tm<size_t, size_t, 2, 8, 8>::data_mesh_type_ tensor(8ull, 8ull);
-
+    Logic2048_tm<size_t, size_t, 2, 8, 8>::data_mesh_type_ tensor(8ull, 8ull)
     // 步骤3: 复制数据（确保大小匹配）
     std::memcpy(tensor.data(), custom_values, sizeof(custom_values));
 
