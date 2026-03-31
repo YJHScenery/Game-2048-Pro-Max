@@ -3,3 +3,5 @@
 .idea/
 
 .qtcreator
+
+src/qml/*.autosave

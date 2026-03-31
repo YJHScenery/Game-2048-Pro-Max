@@ -31,6 +31,11 @@ class Game2048 : public QObject
 public:
     explicit Game2048(QObject *parent = nullptr);
 
+    int parse2DSize(const QVariantList &sizeInfo) const;
+    void emit2D(const QString &gameMode, int size);
+    void reset2D(int size);
+    void operate2D(int size, int dim, MoveDirection dir);
+
 public slots:
     void on_ResetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo);
 
@@ -46,18 +51,20 @@ public slots:
 
     void on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo);
 
+
+
 signals:
     void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
 private:
-    bool ensure2DBoard(const QString &gameMode, const QVariantList &sizeInfo);
-    void reset2DBoard();
-    bool move2DUp();
-    bool move2DDown();
-    bool move2DLeft();
-    bool move2DRight();
-    void addRandomTile2D();
-    void emit2D();
+    // bool ensure2DBoard(const QString &gameMode, const QVariantList &sizeInfo);
+    // void reset2DBoard();
+    // bool move2DUp();
+    // bool move2DDown();
+    // bool move2DLeft();
+    // bool move2DRight();
+    // void addRandomTile2D();
+    // void emit2D();
 
     QString m_currentGameMode{"Static"};
     int m_rows2D{4};

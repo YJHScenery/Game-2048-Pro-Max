@@ -4,246 +4,119 @@
 
 #include "game_2048.h"
 
-#include <QRandomGenerator>
-#include <QtGlobal>
-
 Game2048::Game2048(QObject *parent) : QObject(parent)
 {
-    m_board2D.resize(m_rows2D * m_cols2D);
-    reset2DBoard();
+    // 默认初始化一个可用棋盘（避免 QML 首次进入时拿到未初始化数据）
+    m_GameBoard4x4.resetAndSeed(2);
 }
 
-bool Game2048::ensure2DBoard(const QString &gameMode, const QVariantList &sizeInfo)
+int Game2048::parse2DSize(const QVariantList &sizeInfo) const
 {
-    m_currentGameMode = gameMode.isEmpty() ? QStringLiteral("Static") : gameMode;
-
-    int newRows = m_rows2D;
-    int newCols = m_cols2D;
-
-    if (sizeInfo.size() >= 2)
+    if (sizeInfo.size() >= 1)
     {
-        newRows = qMax(1, sizeInfo.at(0).toInt());
-        newCols = qMax(1, sizeInfo.at(1).toInt());
+        const int s = sizeInfo.at(0).toInt();
+        if (s == 4 || s == 6 || s == 8)
+            return s;
     }
-
-    if (newRows != m_rows2D || newCols != m_cols2D || m_board2D.size() != newRows * newCols)
-    {
-        m_rows2D = newRows;
-        m_cols2D = newCols;
-        m_board2D = QVector<size_t>(m_rows2D * m_cols2D, 0);
-        return true;
-    }
-    return false;
+    return 4;
 }
 
-void Game2048::reset2DBoard()
+void Game2048::emit2D(const QString &gameMode, const int size)
 {
-    std::fill(m_board2D.begin(), m_board2D.end(), 0);
-    addRandomTile2D();
-    addRandomTile2D();
-}
-
-static QVector<size_t> compressAndMergeLine(const QVector<size_t> &line)
-{
-    QVector<size_t> nonZero;
-    nonZero.reserve(line.size());
-    for (const auto v : line)
-    {
-        if (v != 0)
-            nonZero.push_back(v);
-    }
-
-    QVector<size_t> merged;
-    merged.reserve(line.size());
-    for (int i = 0; i < nonZero.size(); ++i)
-    {
-        if (i + 1 < nonZero.size() && nonZero[i] == nonZero[i + 1])
-        {
-            merged.push_back(nonZero[i] * 2);
-            ++i;
-        }
-        else
-        {
-            merged.push_back(nonZero[i]);
-        }
-    }
-
-    while (merged.size() < line.size())
-        merged.push_back(0);
-    return merged;
-}
-
-bool Game2048::move2DLeft()
-{
-    bool changed = false;
-    for (int r = 0; r < m_rows2D; ++r)
-    {
-        QVector<size_t> line;
-        line.reserve(m_cols2D);
-        for (int c = 0; c < m_cols2D; ++c)
-        {
-            line.push_back(m_board2D[r * m_cols2D + c]);
-        }
-        const auto newLine = compressAndMergeLine(line);
-        if (newLine != line)
-            changed = true;
-        for (int c = 0; c < m_cols2D; ++c)
-        {
-            m_board2D[r * m_cols2D + c] = newLine[c];
-        }
-    }
-    return changed;
-}
-
-bool Game2048::move2DRight()
-{
-    bool changed = false;
-    for (int r = 0; r < m_rows2D; ++r)
-    {
-        QVector<size_t> line;
-        line.reserve(m_cols2D);
-        for (int c = m_cols2D - 1; c >= 0; --c)
-        {
-            line.push_back(m_board2D[r * m_cols2D + c]);
-        }
-        const auto newLine = compressAndMergeLine(line);
-        if (newLine != line)
-            changed = true;
-        for (int c = m_cols2D - 1, i = 0; c >= 0; --c, ++i)
-        {
-            m_board2D[r * m_cols2D + c] = newLine[i];
-        }
-    }
-    return changed;
-}
-
-bool Game2048::move2DUp()
-{
-    bool changed = false;
-    for (int c = 0; c < m_cols2D; ++c)
-    {
-        QVector<size_t> line;
-        line.reserve(m_rows2D);
-        for (int r = 0; r < m_rows2D; ++r)
-        {
-            line.push_back(m_board2D[r * m_cols2D + c]);
-        }
-        const auto newLine = compressAndMergeLine(line);
-        if (newLine != line)
-            changed = true;
-        for (int r = 0; r < m_rows2D; ++r)
-        {
-            m_board2D[r * m_cols2D + c] = newLine[r];
-        }
-    }
-    return changed;
-}
-
-bool Game2048::move2DDown()
-{
-    bool changed = false;
-    for (int c = 0; c < m_cols2D; ++c)
-    {
-        QVector<size_t> line;
-        line.reserve(m_rows2D);
-        for (int r = m_rows2D - 1; r >= 0; --r)
-        {
-            line.push_back(m_board2D[r * m_cols2D + c]);
-        }
-        const auto newLine = compressAndMergeLine(line);
-        if (newLine != line)
-            changed = true;
-        for (int r = m_rows2D - 1, i = 0; r >= 0; --r, ++i)
-        {
-            m_board2D[r * m_cols2D + c] = newLine[i];
-        }
-    }
-    return changed;
-}
-
-void Game2048::addRandomTile2D()
-{
-    QVector<int> empties;
-    empties.reserve(m_board2D.size());
-    for (int i = 0; i < m_board2D.size(); ++i)
-    {
-        if (m_board2D[i] == 0)
-            empties.push_back(i);
-    }
-    if (empties.isEmpty())
-        return;
-
-    const int pickIdx = QRandomGenerator::global()->bounded(empties.size());
-    const int cellIndex = empties[pickIdx];
-    const int roll = QRandomGenerator::global()->bounded(10); // 0..9
-    m_board2D[cellIndex] = (roll == 0) ? 4 : 2;               // 10% 4, 90% 2
-}
-
-void Game2048::emit2D()
-{
-    QVariantList sizeInfo;
-    sizeInfo.reserve(2);
-    sizeInfo << m_rows2D << m_cols2D;
+    QVariantList outSize;
+    outSize.reserve(2);
+    outSize << size << size;
 
     QVariantList flat;
-    flat.reserve(m_board2D.size());
-    for (const auto v : m_board2D)
+
+    if (size == 6)
     {
-        flat << static_cast<qulonglong>(v);
+        const auto data = m_GameBoard6x6.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
+    }
+    else if (size == 8)
+    {
+        const auto data = m_GameBoard8x8.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
+    }
+    else
+    {
+        const auto data = m_GameBoard4x4.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
     }
 
-    emit sendGameData(m_currentGameMode, sizeInfo, flat);
+    emit sendGameData(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat);
+}
+
+void Game2048::reset2D(const int size)
+{
+    if (size == 6)
+        m_GameBoard6x6.resetAndSeed(2);
+    else if (size == 8)
+        m_GameBoard8x8.resetAndSeed(2);
+    else
+        m_GameBoard4x4.resetAndSeed(2);
+}
+
+void Game2048::operate2D(const int size, const int dim, const MoveDirection dir)
+{
+    if (size == 6)
+        (void)m_GameBoard6x6.operateAndSpawn(dim, dir);
+    else if (size == 8)
+        (void)m_GameBoard8x8.operateAndSpawn(dim, dir);
+    else
+        (void)m_GameBoard4x4.operateAndSpawn(dim, dir);
 }
 
 void Game2048::on_ResetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    ensure2DBoard(gameMode, sizeInfo);
-    reset2DBoard();
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    reset2D(size);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Up_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    ensure2DBoard(gameMode, sizeInfo);
-    if (move2DUp())
-        addRandomTile2D();
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    operate2D(size, 0, MoveDirection::Negative);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Down_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    ensure2DBoard(gameMode, sizeInfo);
-    if (move2DDown())
-        addRandomTile2D();
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    operate2D(size, 0, MoveDirection::Positive);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Left_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    ensure2DBoard(gameMode, sizeInfo);
-    if (move2DLeft())
-        addRandomTile2D();
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    operate2D(size, 1, MoveDirection::Negative);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Right_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    ensure2DBoard(gameMode, sizeInfo);
-    if (move2DRight())
-        addRandomTile2D();
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    operate2D(size, 1, MoveDirection::Positive);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Forward_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    Q_UNUSED(sizeInfo)
-    m_currentGameMode = gameMode.isEmpty() ? QStringLiteral("Static") : gameMode;
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    emit2D(gameMode, size);
 }
 
 void Game2048::on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
-    Q_UNUSED(sizeInfo)
-    m_currentGameMode = gameMode.isEmpty() ? QStringLiteral("Static") : gameMode;
-    emit2D();
+    const int size = parse2DSize(sizeInfo);
+    emit2D(gameMode, size);
 }
