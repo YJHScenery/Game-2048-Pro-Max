@@ -4,11 +4,7 @@
 
 #ifndef GAME_2048_QUICK_CPU_INTERFACE_H
 #define GAME_2048_QUICK_CPU_INTERFACE_H
-struct StandardLineDesc
-{
-    std::uint64_t start; // element offset (not bytes)
-    std::int64_t step;   // element stride (signed, not bytes)
-};
+#include "basic_dependency.h"
 
 template <typename T>
 void move_lines_cpu(T* h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len);

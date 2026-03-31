@@ -11,19 +11,6 @@
 #include <utility>
 
 
-
-struct CudaLineDesc
-{
-    std::uint64_t start; // element offset (not bytes)
-    std::int64_t step;   // element stride (signed, not bytes)
-};
-
-struct CannLineDesc
-{
-    std::uint64_t start;
-    std::int64_t step;
-};
-
 template <typename T, typename LineDesc, typename Device>
 void move_lines_gpu(T* h_data, const LineDesc* h_lines, std::size_t line_count, std::size_t line_len, Device* stream = nullptr);
 
@@ -31,6 +18,26 @@ void move_lines_gpu(T* h_data, const LineDesc* h_lines, std::size_t line_count, 
 template<typename T, typename LineDesc, typename Device>
 void move_lines_gpu(T *h_data, const LineDesc *h_lines, std::size_t line_count, std::size_t line_len, Device* stream)
 {
+    using meta_type_ = T;
+    if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)
+    {
+        cuda_move_lines_ll(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    }
+    else if constexpr (std::is_integral_v<meta_type_> && std::is_unsigned_v<meta_type_>)
+    {
+
+        cuda_move_lines_ull(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+
+    }
+    else if constexpr (std::is_floating_point_v<meta_type_> && std::is_signed_v<meta_type_>)
+    {
+        cuda_move_lines_ld(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+    }
+    else
+    {
+        cuda_move_lines_uld(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
+
+    }
 }
 
 

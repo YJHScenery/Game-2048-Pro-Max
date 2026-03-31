@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.1.2)
-project(Game_2048_Quick)
+project(Game_2048_Quick LANGUAGES CXX CUDA)
 
 
 set(CMAKE_CXX_STANDARD 20)
@@ -7,14 +7,14 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(HPC_PLATFORM CPU)
+set(HPC_PLATFORM CUDA)
 
 if(HPC_PLATFORM MATCHES "CUDA")
 
     set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     set(CMAKE_CUDA_ARCHITECTURES 90)     # ✅ RTX 5070 专属算力9.0（关键！）
-    set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
+    # set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
 
     # ===================== 3. 找到CUDA工具包（自动搜索） =====================
     find_package(CUDAToolkit REQUIRED)
@@ -38,6 +38,7 @@ else()
     )
     set(CANN_SOURCE_FILES
     )
+
 endif ()
 
 set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
@@ -56,12 +57,12 @@ set(CPP_HEADER_FILES
         src/cpp/headers/hpc_interface.h
         src/cpp/headers/cann_interface.h
         src/cpp/headers/cpu_interface.h
+        src/cpp/headers/basic_dependency.h
 )
 
 set(CPP_SOURCE_FILES
         src/cpp/sources/logic_2048_pm.cpp
         src/cpp/sources/main.cpp
-
 )
 
 
@@ -87,7 +88,6 @@ add_executable(${PROJECT_NAME}
         ${CUDA_SOURCE_FILES}
         ${CANN_SOURCE_FILES}
         ${RESOURCE_FILES}
-
         )
 
 foreach (QT_LIB ${QT_PACKAGES_LIST})
@@ -133,8 +133,3 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif ()
 
 
-
-# ===================== 7. Windows编译优化 =====================
-target_compile_options(${PROJECT_NAME} PRIVATE
-        $<$<CONFIG:Release>:/O2>  # Release模式最大优化
-)

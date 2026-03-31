@@ -14,13 +14,13 @@ static void cuda_throw_if_failed(cudaError_t err, const char *what)
 
 // -------------------- device-side line resolve (no templates) --------------------
 
-__global__ void move_lines_ll_kernel(long long *data, const CudaLineDesc *lines, std::size_t line_count, std::size_t len)
+__global__ void move_lines_ll_kernel(long long *data, const StandardLineDesc *lines, std::size_t line_count, std::size_t len)
 {
     const std::size_t line_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (line_id >= line_count)
         return;
 
-    const CudaLineDesc desc = lines[line_id];
+    const StandardLineDesc desc = lines[line_id];
     const std::uint64_t base = desc.start;
     const std::int64_t step = desc.step;
 
@@ -70,14 +70,14 @@ __global__ void move_lines_ll_kernel(long long *data, const CudaLineDesc *lines,
     }
 }
 
-__global__ void move_lines_ull_kernel(unsigned long long *data, const CudaLineDesc *lines, std::size_t line_count,
+__global__ void move_lines_ull_kernel(unsigned long long *data, const StandardLineDesc *lines, std::size_t line_count,
                                       std::size_t len)
 {
     const std::size_t line_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (line_id >= line_count)
         return;
 
-    const CudaLineDesc desc = lines[line_id];
+    const StandardLineDesc desc = lines[line_id];
     const std::uint64_t base = desc.start;
     const std::int64_t step = desc.step;
 
@@ -127,13 +127,13 @@ __global__ void move_lines_ull_kernel(unsigned long long *data, const CudaLineDe
     }
 }
 
-__global__ void move_lines_ld_kernel(double *data, const CudaLineDesc *lines, std::size_t line_count, std::size_t len)
+__global__ void move_lines_ld_kernel(double *data, const StandardLineDesc *lines, std::size_t line_count, std::size_t len)
 {
     const std::size_t line_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (line_id >= line_count)
         return;
 
-    const CudaLineDesc desc = lines[line_id];
+    const StandardLineDesc desc = lines[line_id];
     const std::uint64_t base = desc.start;
     const std::int64_t step = desc.step;
 
@@ -183,13 +183,13 @@ __global__ void move_lines_ld_kernel(double *data, const CudaLineDesc *lines, st
     }
 }
 
-__global__ void move_lines_uld_kernel(double *data, const CudaLineDesc *lines, std::size_t line_count, std::size_t len)
+__global__ void move_lines_uld_kernel(double *data, const StandardLineDesc *lines, std::size_t line_count, std::size_t len)
 {
     const std::size_t line_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (line_id >= line_count)
         return;
 
-    const CudaLineDesc desc = lines[line_id];
+    const StandardLineDesc desc = lines[line_id];
     const std::uint64_t base = desc.start;
     const std::int64_t step = desc.step;
 
@@ -253,7 +253,7 @@ static inline dim3 choose_grid_dim(std::size_t n, dim3 block)
 
 // -------------------- public API --------------------
 
-void cuda_move_lines_ll(long long *h_data, const CudaLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
+void cuda_move_lines_ll(long long *h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
                         cudaStream_t stream)
 {
     if (line_count == 0 || line_len == 0)
@@ -262,18 +262,18 @@ void cuda_move_lines_ll(long long *h_data, const CudaLineDesc *h_lines, std::siz
     const std::size_t total_elems = line_count * line_len;
 
     long long *d_data = nullptr;
-    CudaLineDesc *d_lines = nullptr;
+    StandardLineDesc *d_lines = nullptr;
 
     cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_data), total_elems * sizeof(long long)),
                          "cudaMalloc d_data");
-    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(CudaLineDesc)),
+    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(StandardLineDesc)),
                          "cudaMalloc d_lines");
 
     cuda_throw_if_failed(
         cudaMemcpyAsync(d_data, h_data, total_elems * sizeof(long long), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D data");
     cuda_throw_if_failed(
-        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(CudaLineDesc), cudaMemcpyHostToDevice, stream),
+        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(StandardLineDesc), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D lines");
 
     const dim3 block = choose_block_dim(line_count);
@@ -290,7 +290,7 @@ void cuda_move_lines_ll(long long *h_data, const CudaLineDesc *h_lines, std::siz
     cudaFree(d_data);
 }
 
-void cuda_move_lines_ull(unsigned long long *h_data, const CudaLineDesc *h_lines, std::size_t line_count,
+void cuda_move_lines_ull(unsigned long long *h_data, const StandardLineDesc *h_lines, std::size_t line_count,
                          std::size_t line_len, cudaStream_t stream)
 {
     if (line_count == 0 || line_len == 0)
@@ -299,18 +299,18 @@ void cuda_move_lines_ull(unsigned long long *h_data, const CudaLineDesc *h_lines
     const std::size_t total_elems = line_count * line_len;
 
     unsigned long long *d_data = nullptr;
-    CudaLineDesc *d_lines = nullptr;
+    StandardLineDesc *d_lines = nullptr;
 
     cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_data), total_elems * sizeof(unsigned long long)),
                          "cudaMalloc d_data");
-    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(CudaLineDesc)),
+    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(StandardLineDesc)),
                          "cudaMalloc d_lines");
 
     cuda_throw_if_failed(
         cudaMemcpyAsync(d_data, h_data, total_elems * sizeof(unsigned long long), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D data");
     cuda_throw_if_failed(
-        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(CudaLineDesc), cudaMemcpyHostToDevice, stream),
+        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(StandardLineDesc), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D lines");
 
     const dim3 block = choose_block_dim(line_count);
@@ -327,7 +327,7 @@ void cuda_move_lines_ull(unsigned long long *h_data, const CudaLineDesc *h_lines
     cudaFree(d_data);
 }
 
-void cuda_move_lines_ld(double *h_data, const CudaLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
+void cuda_move_lines_ld(double *h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
                         cudaStream_t stream)
 {
     if (line_count == 0 || line_len == 0)
@@ -336,17 +336,17 @@ void cuda_move_lines_ld(double *h_data, const CudaLineDesc *h_lines, std::size_t
     const std::size_t total_elems = line_count * line_len;
 
     double *d_data = nullptr;
-    CudaLineDesc *d_lines = nullptr;
+    StandardLineDesc *d_lines = nullptr;
 
     cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_data), total_elems * sizeof(double)),
                          "cudaMalloc d_data");
-    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(CudaLineDesc)),
+    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(StandardLineDesc)),
                          "cudaMalloc d_lines");
 
     cuda_throw_if_failed(cudaMemcpyAsync(d_data, h_data, total_elems * sizeof(double), cudaMemcpyHostToDevice, stream),
                          "cudaMemcpyAsync H2D data");
     cuda_throw_if_failed(
-        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(CudaLineDesc), cudaMemcpyHostToDevice, stream),
+        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(StandardLineDesc), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D lines");
 
     const dim3 block = choose_block_dim(line_count);
@@ -363,7 +363,7 @@ void cuda_move_lines_ld(double *h_data, const CudaLineDesc *h_lines, std::size_t
     cudaFree(d_data);
 }
 
-void cuda_move_lines_uld(double *h_data, const CudaLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
+void cuda_move_lines_uld(double *h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
                          cudaStream_t stream)
 {
     if (line_count == 0 || line_len == 0)
@@ -372,17 +372,17 @@ void cuda_move_lines_uld(double *h_data, const CudaLineDesc *h_lines, std::size_
     const std::size_t total_elems = line_count * line_len;
 
     double *d_data = nullptr;
-    CudaLineDesc *d_lines = nullptr;
+    StandardLineDesc *d_lines = nullptr;
 
     cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_data), total_elems * sizeof(double)),
                          "cudaMalloc d_data");
-    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(CudaLineDesc)),
+    cuda_throw_if_failed(cudaMalloc(reinterpret_cast<void **>(&d_lines), line_count * sizeof(StandardLineDesc)),
                          "cudaMalloc d_lines");
 
     cuda_throw_if_failed(cudaMemcpyAsync(d_data, h_data, total_elems * sizeof(double), cudaMemcpyHostToDevice, stream),
                          "cudaMemcpyAsync H2D data");
     cuda_throw_if_failed(
-        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(CudaLineDesc), cudaMemcpyHostToDevice, stream),
+        cudaMemcpyAsync(d_lines, h_lines, line_count * sizeof(StandardLineDesc), cudaMemcpyHostToDevice, stream),
         "cudaMemcpyAsync H2D lines");
 
     const dim3 block = choose_block_dim(line_count);
