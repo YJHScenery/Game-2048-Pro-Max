@@ -3,13 +3,29 @@ import QtQuick.Controls
 import QtQuick.Controls.Material as ControlsMaterial
 import QtQuick.Layouts
 
+
+
 Item {
+	Connections{
+		target: game2048
+
+		function onSendGameData(gameMode, sizeInfo, flatData) {
+			console.log("C++Server Send Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
+			if (flatData !== undefined && flatData !== null) {
+				values = flatData
+			}
+		}
+	}
+
 	id: root
 	focus: true
+
+
 
 	property int rows: 4
 	property int columns: 4
 	property var values: [] // length = rows*columns; 0 means empty
+	property string gameMode: "Static"
 
 	signal moveRequested(string direction) // up/down/left/right
 
@@ -24,19 +40,16 @@ Item {
 	}
 
 	function seedValues() {
+		if (game2048 && game2048.on_ResetGame_emitted) {
+			game2048.on_ResetGame_emitted(gameMode, [rows, columns])
+			return
+		}
+		// fallback: keep a deterministic local seed if C++ object isn't available
 		var n = cellCount
 		var arr = new Array(n)
 		for (var i = 0; i < n; i++) arr[i] = 0
-
-		function setAt(r, c, v) {
-			if (r < 0 || c < 0 || r >= rows || c >= columns) return
-			arr[r * columns + c] = v
-		}
-
-		setAt(0, 0, 2)
-		setAt(1, 1, 4)
-		setAt(2, 2, 8)
-		setAt(rows - 1, columns - 1, 16)
+		arr[0] = 2
+		if (n > 5) arr[5] = 4
 		values = arr
 	}
 
@@ -53,21 +66,26 @@ Item {
 		case Qt.Key_Up:
 		case Qt.Key_W:
 			moveRequested("up")
+			if (game2048 && game2048.on_Up_operated) game2048.on_Up_operated(gameMode, [rows, columns])
 			event.accepted = true
+
 			break
 		case Qt.Key_Down:
 		case Qt.Key_S:
 			moveRequested("down")
+			if (game2048 && game2048.on_Down_operated) game2048.on_Down_operated(gameMode, [rows, columns])
 			event.accepted = true
 			break
 		case Qt.Key_Left:
 		case Qt.Key_A:
 			moveRequested("left")
+			if (game2048 && game2048.on_Left_operated) game2048.on_Left_operated(gameMode, [rows, columns])
 			event.accepted = true
 			break
 		case Qt.Key_Right:
 		case Qt.Key_D:
 			moveRequested("right")
+			if (game2048 && game2048.on_Right_operated) game2048.on_Right_operated(gameMode, [rows, columns])
 			event.accepted = true
 			break
 		default:

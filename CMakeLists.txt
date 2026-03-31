@@ -32,11 +32,13 @@ set(CPP_HEADER_FILES
         src/cpp/headers/cann_interface.h
         src/cpp/headers/cpu_interface.h
         src/cpp/headers/basic_dependency.h
+        src/cpp/headers/game_2048.h
 )
 
 set(CPP_SOURCE_FILES
         src/cpp/sources/logic_2048_pm.cpp
         src/cpp/sources/main.cpp
+        src/cpp/sources/game_2048.cpp
 )
 
 set(CUDA_SOURCE_FILES
@@ -52,6 +54,7 @@ set(RESOURCE_FILES
 set(TEST_SOURCE_FILES
         test/benchmark_logic_tensor_6d.cpp
         test/benchmark_logic_tensor_ndim_template.cpp
+        test/cuda_basic_benchmark.cpp
 )
 
 
