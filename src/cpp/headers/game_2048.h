@@ -75,6 +75,14 @@ signals:
     // ---- 3D signal (avoid name clash with 2D) ----
     void sendGameData3D(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
+    // 3D move trace for animation (方案1)
+    void sendMoveTrace3D(const QString &gameMode,
+                         const QVariantList &sizeInfo,
+                         const QVariantList &flatData,
+                         const QVariantList &moves,
+                         const QVariantList &merges,
+                         const QVariantMap &spawn);
+
 private:
     int parse2DSize(const QVariantList &sizeInfo) const;
     void emit2D(const QString &gameMode, int size);
@@ -86,6 +94,7 @@ private:
     void emit3D(const QString &gameMode, int size);
     void reset3D(int size);
     void operate3D(int size, int dim, MoveDirection dir);
+    void operate3DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
     Logic2048_tm<size_t, size_t, 2, 4, 4> m_GameBoard4x4;
     Logic2048_tm<size_t, size_t, 2, 6, 6> m_GameBoard6x6;

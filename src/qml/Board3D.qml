@@ -5,381 +5,807 @@ import QtQuick.Layouts
 import QtQuick3D
 
 Item {
-	Connections{
-		target: game2048
+    id: root
+    Connections {
+        target: game2048
 
-		function onSendGameData3D(gameMode, sizeInfo, flatData) {
-			// console.log("C++Server Send 3D Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
-			if (sizeInfo && sizeInfo.length >= 3) {
-				size = Number(sizeInfo[0])
-				depth = Number(sizeInfo[2])
-			}
-			if (flatData !== undefined && flatData !== null) {
-				values = flatData
-			}
-		}
-	}
+        function onSendGameData3D(gameMode, sizeInfo, flatData) {
+            // console.log("C++Server Send 3D Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
+            if (sizeInfo && sizeInfo.length >= 3) {
+                size = Number(sizeInfo[0]);
+                depth = Number(sizeInfo[2]);
+            }
+            if (flatData !== undefined && flatData !== null) {
+                values = flatData;
+            }
+        }
 
-	id: root
-	focus: true
+        function onSendMoveTrace3D(gameMode, sizeInfo, flatData, moves, merges, spawn) {
+            if (sizeInfo && sizeInfo.length >= 3) {
+                size = Number(sizeInfo[0]);
+                depth = Number(sizeInfo[2]);
+            }
 
-	property int size: 4
-	property int depth: 4
-	property var values: [] // length = size*size*depth
-	property string gameMode: "Static"
+            pendingValues = flatData;
+            animating = true;
+            mergeValueByTo = ({});
+            if (merges) {
+                for (var i = 0; i < merges.length; i++) {
+                    var me = merges[i];
+                    mergeValueByTo[String(me.to)] = Number(me.newValue);
+                }
+            }
 
-	signal moveRequested(string direction) // left/right/forward/back/up/down
+            animModel.clear();
+            if (moves) {
+                for (var j = 0; j < moves.length; j++) {
+                    var m = moves[j];
+                    animModel.append({
+                        from: Number(m.from),
+                        to: Number(m.to),
+                        value: Number(m.value),
+                        merged: Boolean(m.merged),
+                        primary: Boolean(m.primary),
+                        mergeNewValue: mergeValueByTo[String(m.to)] !== undefined ? Number(mergeValueByTo[String(m.to)]) : Number(m.value)
+                    });
+                }
+            }
 
-	readonly property int safeSize: Math.max(1, size)
-	readonly property int safeDepth: Math.max(1, depth)
-	readonly property int cellCount: safeSize * safeSize * safeDepth
+            spawnIndex = (spawn && spawn.index !== undefined) ? Number(spawn.index) : -1;
+            spawnValue = (spawn && spawn.value !== undefined) ? Number(spawn.value) : 0;
+            commitTimer.restart();
+        }
+    }
+    focus: true
 
-	function valueAt(i) {
-		if (!values || i < 0 || i >= values.length) return 0
-		var v = values[i]
-		return (v === undefined || v === null) ? 0 : v
-	}
+    property int size: 4
+    property int depth: 4
+    property var values: [] // length = size*size*depth
+    property string gameMode: "Static"
+    property bool animating: false
+    property var pendingValues: null
+    property int spawnIndex: -1
+    property int spawnValue: 0
+    property var mergeValueByTo: ({})
+    property int moveDuration: 160
+    property int mergePopDelay: 160
+    property int mergePopDuration: 120
+    property int spawnDuration: 160
 
-	function seedValues() {
-		if (game2048 && game2048.on_ResetGame3D_emitted) {
-			game2048.on_ResetGame3D_emitted(gameMode, [safeSize, safeSize, safeDepth])
-			return
-		}
-		// fallback: local deterministic seed
-		var n = cellCount
-		var arr = new Array(n)
-		for (var i = 0; i < n; i++) arr[i] = 0
-		function idx(x, y, z) { return z * safeSize * safeSize + y * safeSize + x }
-		arr[idx(0, 0, 0)] = 2
-		values = arr
-	}
+    ListModel {
+        id: animModel
+    }
+    Timer {
+        id: commitTimer
+        interval: root.moveDuration + root.mergePopDelay + root.mergePopDuration
+        repeat: false
+        onTriggered: {
+            if (pendingValues !== undefined && pendingValues !== null) {
+                values = pendingValues;
+            }
+            pendingValues = null;
+            spawnIndex = -1;
+            spawnValue = 0;
+            animating = false;
+        }
+    }
 
-	Component.onCompleted: {
-		seedValues()
-		forceActiveFocus()
-	}
+    signal moveRequested(string direction) // left/right/forward/back/up/down
 
-	onSizeChanged: seedValues()
-	onDepthChanged: seedValues()
+    readonly property int safeSize: Math.max(1, size)
+    readonly property int safeDepth: Math.max(1, depth)
+    readonly property int cellCount: safeSize * safeSize * safeDepth
 
-	Keys.onPressed: function(event) {
-		switch (event.key) {
-		case Qt.Key_Left:
-		case Qt.Key_A:
-			moveRequested("left")
-			if (game2048 && game2048.on_Left3D_operated) game2048.on_Left3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		case Qt.Key_Right:
-		case Qt.Key_D:
-			moveRequested("right")
-			if (game2048 && game2048.on_Right3D_operated) game2048.on_Right3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		case Qt.Key_Up:
-		case Qt.Key_W:
-			moveRequested("forward")
-			if (game2048 && game2048.on_Forward3D_operated) game2048.on_Forward3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		case Qt.Key_Down:
-		case Qt.Key_S:
-			moveRequested("back")
-			if (game2048 && game2048.on_Back3D_operated) game2048.on_Back3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		case Qt.Key_Q:
-			moveRequested("down")
-			if (game2048 && game2048.on_Down3D_operated) game2048.on_Down3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		case Qt.Key_E:
-			moveRequested("up")
-			if (game2048 && game2048.on_Up3D_operated) game2048.on_Up3D_operated(gameMode, [safeSize, safeSize, safeDepth])
-			event.accepted = true
-			break
-		default:
-			break
-		}
-	}
+    function valueAt(i) {
+        if (!values || i < 0 || i >= values.length)
+            return 0;
+        var v = values[i];
+        return (v === undefined || v === null) ? 0 : v;
+    }
 
-	Rectangle {
-		anchors.fill: parent
-		radius: 18
-		color: "#0b1220"
-		border.width: 1
-		border.color: "#22304a"
-	}
+    function seedValues() {
+        if (game2048 && game2048.on_ResetGame3D_emitted) {
+            game2048.on_ResetGame3D_emitted(gameMode, [safeSize, safeSize, safeDepth]);
+            return;
+        }
+        // fallback: local deterministic seed
+        var n = cellCount;
+        var arr = new Array(n);
+        for (var i = 0; i < n; i++)
+            arr[i] = 0;
+        function idx(x, y, z) {
+            return z * safeSize * safeSize + y * safeSize + x;
+        }
+        arr[idx(0, 0, 0)] = 2;
+        values = arr;
+    }
 
-	ColumnLayout {
-		anchors.fill: parent
-		anchors.margins: 16
-		spacing: 12
+    Component.onCompleted: {
+        seedValues();
+        forceActiveFocus();
+    }
 
-		RowLayout {
-			Layout.fillWidth: true
-			spacing: 10
+    onSizeChanged: seedValues()
+    onDepthChanged: seedValues()
 
-			Rectangle {
-				Layout.fillWidth: true
-				Layout.preferredHeight: 40
-				radius: 12
-				color: "#0f172a"
-				border.color: "#2a3446"
-				border.width: 1
-				RowLayout {
-					anchors.fill: parent
-					anchors.margins: 10
-					spacing: 10
-					Text {
-						text: "3D 立方体"
-						font.pixelSize: 14
-						font.weight: Font.DemiBold
-						color: "#e5e7eb"
-					}
-					Text {
-						Layout.fillWidth: true
-						text: safeSize + "×" + safeSize + "×" + safeDepth
-						font.pixelSize: 12
-						color: "#9ca3af"
-						elide: Text.ElideRight
-					}
-					Rectangle {
-						Layout.preferredHeight: 22
-						radius: 11
-						color: "#111827"
-						border.color: "#2a3446"
-						border.width: 1
-						Layout.preferredWidth: hint.implicitWidth + 16
-						Text {
-							id: hint
-							anchors.centerIn: parent
-							text: "拖拽旋转 / 滚轮缩放 / WASD+QE"
-							font.pixelSize: 11
-							color: "#cbd5e1"
-						}
-					}
-				}
-			}
-		}
+    Keys.onPressed: function (event) {
+        switch (event.key) {
+        case Qt.Key_Left:
+        case Qt.Key_A:
+            moveRequested("left");
+            if (game2048 && game2048.on_Left3D_operated)
+                game2048.on_Left3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        case Qt.Key_Right:
+        case Qt.Key_D:
+            moveRequested("right");
+            if (game2048 && game2048.on_Right3D_operated)
+                game2048.on_Right3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        case Qt.Key_Up:
+        case Qt.Key_W:
+            moveRequested("forward");
+            if (game2048 && game2048.on_Forward3D_operated)
+                game2048.on_Forward3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        case Qt.Key_Down:
+        case Qt.Key_S:
+            moveRequested("back");
+            if (game2048 && game2048.on_Back3D_operated)
+                game2048.on_Back3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        case Qt.Key_Q:
+            moveRequested("down");
+            if (game2048 && game2048.on_Down3D_operated)
+                game2048.on_Down3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        case Qt.Key_E:
+            moveRequested("up");
+            if (game2048 && game2048.on_Up3D_operated)
+                game2048.on_Up3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            event.accepted = true;
+            break;
+        default:
+            break;
+        }
+    }
 
-		Item {
-			id: viewport
-			Layout.fillWidth: true
-			Layout.fillHeight: true
+    Rectangle {
+        anchors.fill: parent
+        radius: 18
+        color: "#0b1220"
+        border.width: 1
+        border.color: "#22304a"
+    }
 
-			property real yaw: 35
-			property real pitch: 20
-			property real distance: 520
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 16
+        spacing: 12
 
-			readonly property vector3d target: Qt.vector3d(0, 0, 0)
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
 
-			function updateCamera() {
-				var yawRad = yaw * Math.PI / 180.0
-				var pitchRad = pitch * Math.PI / 180.0
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                radius: 12
+                color: "#0f172a"
+                border.color: "#2a3446"
+                border.width: 1
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 10
+                    Text {
+                        text: "3D 立方体"
+                        font.pixelSize: 14
+                        font.weight: Font.DemiBold
+                        color: "#e5e7eb"
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        text: safeSize + "×" + safeSize + "×" + safeDepth
+                        font.pixelSize: 12
+                        color: "#9ca3af"
+                        elide: Text.ElideRight
+                    }
+                    Rectangle {
+                        Layout.preferredHeight: 22
+                        radius: 11
+                        color: "#111827"
+                        border.color: "#2a3446"
+                        border.width: 1
+                        Layout.preferredWidth: hint.implicitWidth + 16
+                        Text {
+                            id: hint
+                            anchors.centerIn: parent
+                            text: "拖拽旋转 / 滚轮缩放 / WASD+QE"
+                            font.pixelSize: 11
+                            color: "#cbd5e1"
+                        }
+                    }
+                }
+            }
+        }
 
-				var x = distance * Math.sin(yawRad) * Math.cos(pitchRad)
-				var y = distance * Math.sin(pitchRad)
-				var z = distance * Math.cos(yawRad) * Math.cos(pitchRad)
+        Item {
+            id: viewport
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
-				camera.position = Qt.vector3d(x, y, z)
-				camera.eulerRotation = Qt.vector3d(-pitch, yaw, 0)
-			}
+            property real yaw: 35
+            property real pitch: 20
+            property real distance: 520
 
-			Component.onCompleted: updateCamera()
-			onYawChanged: updateCamera()
-			onPitchChanged: updateCamera()
-			onDistanceChanged: updateCamera()
+            readonly property vector3d target: Qt.vector3d(0, 0, 0)
 
-			View3D {
-				id: view3d
-				anchors.fill: parent
+            function updateCamera() {
+                var yawRad = yaw * Math.PI / 180.0;
+                var pitchRad = pitch * Math.PI / 180.0;
 
-				environment: SceneEnvironment {
-					clearColor: "#0b1220"
-					backgroundMode: SceneEnvironment.Color
-					antialiasingMode: SceneEnvironment.MSAA
-					antialiasingQuality: SceneEnvironment.High
-				}
+                var x = distance * Math.sin(yawRad) * Math.cos(pitchRad);
+                var y = distance * Math.sin(pitchRad);
+                var z = distance * Math.cos(yawRad) * Math.cos(pitchRad);
 
-				PerspectiveCamera {
-					id: camera
-					clipNear: 1
-					clipFar: 4000
-					fieldOfView: 50
-				}
+                camera.position = Qt.vector3d(x, y, z);
+                camera.eulerRotation = Qt.vector3d(-pitch, yaw, 0);
+            }
 
-				DirectionalLight {
-					eulerRotation.x: -35
-					eulerRotation.y: 25
-					brightness: 1.2
-				}
-				PointLight {
-					position: Qt.vector3d(0, 320, 320)
-					brightness: 220
-					color: "#a78bfa"
-				}
+            Component.onCompleted: updateCamera()
+            onYawChanged: updateCamera()
+            onPitchChanged: updateCamera()
+            onDistanceChanged: updateCamera()
 
-				Node {
-					id: sceneRoot
-					readonly property int safeMax: Math.max(root.safeSize, root.safeDepth)
-					readonly property real step: Math.max(18, 160 / safeMax)
-					readonly property real cubeEdge: step * 0.76
-					readonly property real cubeScale: cubeEdge / 100.0
-					readonly property real labelScale: cubeEdge / 100.0
-					readonly property real labelEpsilon: 0.6
+            View3D {
+                id: view3d
+                anchors.fill: parent
 
-					PrincipledMaterial {
-						id: emptyMat
-						baseColor: "#111827"
-						roughness: 0.55
-						metalness: 0.0
-						opacity: 0.70
-					}
+                environment: SceneEnvironment {
+                    clearColor: "#0b1220"
+                    backgroundMode: SceneEnvironment.Color
+                    antialiasingMode: SceneEnvironment.MSAA
+                    antialiasingQuality: SceneEnvironment.High
+                }
 
-					PrincipledMaterial {
-						id: filledMat
-						baseColor: "#6d28d9"
-						roughness: 0.40
-						metalness: 0.0
-						opacity: 0.88
-					}
+                PerspectiveCamera {
+                    id: camera
+                    clipNear: 1
+                    clipFar: 4000
+                    fieldOfView: 50
+                }
 
-					Repeater3D {
-						id: cubeRep
-						model: root.cellCount
+                DirectionalLight {
+                    eulerRotation.x: -35
+                    eulerRotation.y: 25
+                    brightness: 1.2
+                }
+                PointLight {
+                    position: Qt.vector3d(0, 320, 320)
+                    brightness: 220
+                    color: "#a78bfa"
+                }
 
-						delegate: Node {
-							readonly property int idx: index
-							readonly property int xId: idx % root.safeSize
-							readonly property int yId: Math.floor(idx / root.safeSize) % root.safeSize
-							readonly property int zId: Math.floor(idx / (root.safeSize * root.safeSize))
+                Node {
+                    id: sceneRoot
+                    readonly property int safeMax: Math.max(root.safeSize, root.safeDepth)
+                    readonly property real step: Math.max(18, 160 / safeMax)
+                    readonly property real cubeEdge: step * 0.76
+                    readonly property real cubeScale: cubeEdge / 100.0
+                    readonly property real labelScale: cubeEdge / 100.0
+                    readonly property real labelEpsilon: 0.6
+                    readonly property real boardHalfX: (root.safeSize - 1) / 2.0 * step
+                    readonly property real boardHalfY: (root.safeSize - 1) / 2.0 * step
+                    readonly property real boardHalfZ: (root.safeDepth - 1) / 2.0 * step
 
-							readonly property real cx: (xId - (root.safeSize - 1) / 2.0) * sceneRoot.step
-							readonly property real cy: (yId - (root.safeSize - 1) / 2.0) * sceneRoot.step
-							readonly property real cz: (zId - (root.safeDepth - 1) / 2.0) * sceneRoot.step
+                    function idxToPos(idx) {
+                        var xId = idx % root.safeSize;
+                        var yId = Math.floor(idx / root.safeSize) % root.safeSize;
+                        var zId = Math.floor(idx / (root.safeSize * root.safeSize));
+                        var cx = (xId - (root.safeSize - 1) / 2.0) * step;
+                        var cy = (yId - (root.safeSize - 1) / 2.0) * step;
+                        var cz = (zId - (root.safeDepth - 1) / 2.0) * step;
+                        return Qt.vector3d(cx, cy, cz);
+                    }
 
-							position: Qt.vector3d(cx, cy, cz)
+                    PrincipledMaterial {
+                        id: emptyMat
+                        baseColor: "#111827"
+                        roughness: 0.55
+                        metalness: 0.0
+                        opacity: 0.70
+                    }
 
-							readonly property int v: root.valueAt(idx)
+                    PrincipledMaterial {
+                        id: filledMat
+                        baseColor: "#6d28d9"
+                        roughness: 0.40
+                        metalness: 0.0
+                        opacity: 0.88
+                    }
 
-							Model {
-								source: "#Cube"
-								scale: Qt.vector3d(sceneRoot.cubeScale, sceneRoot.cubeScale, sceneRoot.cubeScale)
-								materials: [v > 0 ? filledMat : emptyMat]
-							}
+                    // 坐标轴提示：放在棋盘侧边，随视角(相机轨道)一起呈现旋转效果
+                    Node {
+                        id: axisHint
+                        position: Qt.vector3d(boardHalfX + step * 1.2, -boardHalfY - step * 1.2, -boardHalfZ - step * 1.2)
+                        visible: true
 
-							Node {
-								visible: v > 0
-								eulerRotation: camera.eulerRotation
+                        readonly property real axisLen: step * 0.9
+                        readonly property real shaftR: Math.max(0.6, step * 0.04)
+                        readonly property real headLen: step * 0.22
+                        readonly property real headR: Math.max(1.0, step * 0.07)
 
-								Model {
-									source: "#Rectangle"
-									position: Qt.vector3d(0, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
-									scale: Qt.vector3d(sceneRoot.labelScale, sceneRoot.labelScale, 1)
-									materials: [
-										DefaultMaterial {
-											lighting: DefaultMaterial.NoLighting
-											cullMode: Material.NoCulling
-											opacity: 0.98
-											diffuseMap: Texture {
-												minFilter: Texture.Linear
-												magFilter: Texture.Linear
-												generateMipmaps: true
-												sourceItem: Rectangle {
-													width: 128
-													height: 128
-													radius: 24
-													color: "#0f172a"
-													border.color: "#a78bfa"
-													border.width: 2
-													Text {
-														anchors.centerIn: parent
-														text: v
-														font.pixelSize: 56
-														font.weight: Font.DemiBold
-														color: "#e5e7eb"
-													}
-												}
-											}
-										}
-									]
-								}
-							}
-						}
-					}
-				}
+                        DefaultMaterial {
+                            id: axisMat
+                            lighting: DefaultMaterial.NoLighting
+                            cullMode: Material.NoCulling
+                            diffuseColor: "#e5e7eb"
+                            opacity: 0.92
+                        }
+                        DefaultMaterial {
+                            id: axisMatZ
+                            lighting: DefaultMaterial.NoLighting
+                            cullMode: Material.NoCulling
+                            diffuseColor: "#9ca3af"
+                            opacity: 0.88
+                        }
 
-				MouseArea {
-					anchors.fill: parent
-					hoverEnabled: true
-					acceptedButtons: Qt.LeftButton
+                        Node {
+                            id: axisX
+                            eulerRotation: Qt.vector3d(0, 0, -90)
+                            Model {
+                                source: "#Cylinder"
+                                position: Qt.vector3d(axisLen * 0.45, 0, 0)
+                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                materials: [axisMat]
+                            }
+                            Model {
+                                source: "#Cone"
+                                position: Qt.vector3d(axisLen + headLen * 0.15, 0, 0)
+                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                materials: [axisMat]
+                            }
+                            Node {
+                                eulerRotation: camera.eulerRotation
+                                Model {
+                                    source: "#Rectangle"
+                                    position: Qt.vector3d(axisLen + headLen * 0.55, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
+                                    materials: [
+                                        DefaultMaterial {
+                                            lighting: DefaultMaterial.NoLighting
+                                            cullMode: Material.NoCulling
+                                            opacity: 0.98
+                                            diffuseMap: Texture {
+                                                minFilter: Texture.Linear
+                                                magFilter: Texture.Linear
+                                                generateMipmaps: true
+                                                sourceItem: Rectangle {
+                                                    width: 96
+                                                    height: 96
+                                                    radius: 18
+                                                    color: "#0f172a"
+                                                    border.color: "#2a3446"
+                                                    border.width: 2
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "X"
+                                                        font.pixelSize: 48
+                                                        font.weight: Font.DemiBold
+                                                        color: "#e5e7eb"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
 
-					property real lastX: 0
-					property real lastY: 0
-					property bool dragging: false
+                        Node {
+                            id: axisY
+                            Model {
+                                source: "#Cylinder"
+                                position: Qt.vector3d(0, axisLen * 0.45, 0)
+                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                materials: [axisMat]
+                            }
+                            Model {
+                                source: "#Cone"
+                                position: Qt.vector3d(0, axisLen + headLen * 0.15, 0)
+                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                materials: [axisMat]
+                            }
+                            Node {
+                                eulerRotation: camera.eulerRotation
+                                Model {
+                                    source: "#Rectangle"
+                                    position: Qt.vector3d(0, axisLen + headLen * 0.55, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
+                                    materials: [
+                                        DefaultMaterial {
+                                            lighting: DefaultMaterial.NoLighting
+                                            cullMode: Material.NoCulling
+                                            opacity: 0.98
+                                            diffuseMap: Texture {
+                                                minFilter: Texture.Linear
+                                                magFilter: Texture.Linear
+                                                generateMipmaps: true
+                                                sourceItem: Rectangle {
+                                                    width: 96
+                                                    height: 96
+                                                    radius: 18
+                                                    color: "#0f172a"
+                                                    border.color: "#2a3446"
+                                                    border.width: 2
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "Y"
+                                                        font.pixelSize: 48
+                                                        font.weight: Font.DemiBold
+                                                        color: "#e5e7eb"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
 
-					onPressed: function(mouse) {
-						dragging = true
-						lastX = mouse.x
-						lastY = mouse.y
-					}
-					onReleased: dragging = false
-					onPositionChanged: function(mouse) {
-						if (!dragging) return
-						var dx = mouse.x - lastX
-						var dy = mouse.y - lastY
-						lastX = mouse.x
-						lastY = mouse.y
+                        Node {
+                            id: axisZ
+                            Model {
+                                source: "#Cylinder"
+                                position: Qt.vector3d(0, 0, axisLen * 0.45)
+                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                materials: [axisMatZ]
+                            }
+                            Model {
+                                source: "#Cone"
+                                position: Qt.vector3d(0, 0, axisLen + headLen * 0.15)
+                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                materials: [axisMatZ]
+                            }
+                            Node {
+                                eulerRotation: camera.eulerRotation
+                                Model {
+                                    source: "#Rectangle"
+                                    position: Qt.vector3d(0, 0, axisLen + headLen * 0.55 + sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
+                                    materials: [
+                                        DefaultMaterial {
+                                            lighting: DefaultMaterial.NoLighting
+                                            cullMode: Material.NoCulling
+                                            opacity: 0.98
+                                            diffuseMap: Texture {
+                                                minFilter: Texture.Linear
+                                                magFilter: Texture.Linear
+                                                generateMipmaps: true
+                                                sourceItem: Rectangle {
+                                                    width: 96
+                                                    height: 96
+                                                    radius: 18
+                                                    color: "#0f172a"
+                                                    border.color: "#2a3446"
+                                                    border.width: 2
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: "Z"
+                                                        font.pixelSize: 48
+                                                        font.weight: Font.DemiBold
+                                                        color: "#e5e7eb"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
 
-						viewport.yaw = viewport.yaw - dx * 0.35
-						viewport.pitch = Math.max(-80, Math.min(80, viewport.pitch + dy * 0.35))
-					}
-					onWheel: function(wheel) {
-						var delta = wheel.angleDelta.y / 120.0
-						viewport.distance = Math.max(220, Math.min(1200, viewport.distance - delta * 40))
-						wheel.accepted = true
-					}
-				}
-			}
-		}
+                    Repeater3D {
+                        id: cubeRep
+                        model: root.cellCount
 
-		RowLayout {
-			Layout.fillWidth: true
-			spacing: 10
+                        delegate: Node {
+                            readonly property int idx: index
+                            readonly property int xId: idx % root.safeSize
+                            readonly property int yId: Math.floor(idx / root.safeSize) % root.safeSize
+                            readonly property int zId: Math.floor(idx / (root.safeSize * root.safeSize))
 
-			Rectangle {
-				Layout.fillWidth: true
-				Layout.preferredHeight: 48
-				radius: 14
-				color: "#0f172a"
-				border.color: "#2a3446"
-				border.width: 1
+                            readonly property real cx: (xId - (root.safeSize - 1) / 2.0) * sceneRoot.step
+                            readonly property real cy: (yId - (root.safeSize - 1) / 2.0) * sceneRoot.step
+                            readonly property real cz: (zId - (root.safeDepth - 1) / 2.0) * sceneRoot.step
 
-				Text {
-					id: lastMove
-					anchors.centerIn: parent
-					text: "Last move: —"
-					font.pixelSize: 12
-					color: "#9ca3af"
-				}
-			}
+                            position: Qt.vector3d(cx, cy, cz)
 
-			Button {
-				Layout.preferredWidth: 140
-				text: "重置视角"
-				onClicked: {
-					viewport.yaw = 35
-					viewport.pitch = 20
-					viewport.distance = 520
-				}
-				ControlsMaterial.Material.background: "#0f172a"
-				ControlsMaterial.Material.foreground: "#e5e7eb"
-			}
-		}
-	}
+                            readonly property int v: root.valueAt(idx)
+                            readonly property bool showFilled: (!root.animating) && v > 0
 
-	onMoveRequested: function(dir) {
-		lastMove.text = "Last move: " + dir
-	}
+                            Model {
+                                source: "#Cube"
+                                scale: Qt.vector3d(sceneRoot.cubeScale, sceneRoot.cubeScale, sceneRoot.cubeScale)
+                                materials: [showFilled ? filledMat : emptyMat]
+                            }
+
+                            Node {
+                                visible: showFilled
+                                eulerRotation: camera.eulerRotation
+
+                                Model {
+                                    source: "#Rectangle"
+                                    position: Qt.vector3d(0, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    scale: Qt.vector3d(sceneRoot.labelScale, sceneRoot.labelScale, 1)
+                                    materials: [
+                                        DefaultMaterial {
+                                            lighting: DefaultMaterial.NoLighting
+                                            cullMode: Material.NoCulling
+                                            opacity: 0.98
+                                            diffuseMap: Texture {
+                                                minFilter: Texture.Linear
+                                                magFilter: Texture.Linear
+                                                generateMipmaps: true
+                                                sourceItem: Rectangle {
+                                                    width: 128
+                                                    height: 128
+                                                    radius: 24
+                                                    color: "#0f172a"
+                                                    border.color: "#a78bfa"
+                                                    border.width: 2
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: v
+                                                        font.pixelSize: 56
+                                                        font.weight: Font.DemiBold
+                                                        color: "#e5e7eb"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 动画 overlay：使用 trace 的 from/to 做真实位移 + 合并强调 + 生成弹出
+                Node {
+                    id: animRoot
+                    visible: root.animating
+                    Repeater3D {
+                        model: animModel
+                        delegate: Node {
+                            id: tileNode
+                            property int fromIdx: from
+                            property int toIdx: to
+                            property int value0: value
+                            property bool isMerged: merged
+                            property bool isPrimary: primary
+                            property int mergeValue: mergeNewValue
+                            property real tileScale: sceneRoot.cubeScale
+
+                            position: sceneRoot.idxToPos(fromIdx)
+
+                            Model {
+                                source: "#Cube"
+                                scale: Qt.vector3d(tileScale, tileScale, tileScale)
+                                materials: [filledMat]
+                            }
+
+                            Node {
+                                visible: value0 > 0
+                                eulerRotation: camera.eulerRotation
+                                Model {
+                                    source: "#Rectangle"
+                                    position: Qt.vector3d(0, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    scale: Qt.vector3d(sceneRoot.labelScale, sceneRoot.labelScale, 1)
+                                    materials: [
+                                        DefaultMaterial {
+                                            lighting: DefaultMaterial.NoLighting
+                                            cullMode: Material.NoCulling
+                                            opacity: 0.98
+                                            diffuseMap: Texture {
+                                                minFilter: Texture.Linear
+                                                magFilter: Texture.Linear
+                                                generateMipmaps: true
+                                                sourceItem: Rectangle {
+                                                    width: 128
+                                                    height: 128
+                                                    radius: 24
+                                                    color: "#0f172a"
+                                                    border.color: "#a78bfa"
+                                                    border.width: 2
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        text: (isMerged && isPrimary) ? mergeValue : value0
+                                                        font.pixelSize: 56
+                                                        font.weight: Font.DemiBold
+                                                        color: "#e5e7eb"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+
+                            ParallelAnimation {
+                                running: root.animating
+                                PropertyAnimation {
+                                    target: tileNode
+                                    property: "position"
+                                    from: sceneRoot.idxToPos(fromIdx)
+                                    to: sceneRoot.idxToPos(toIdx)
+                                    duration: root.moveDuration
+                                    easing.type: Easing.InOutQuad
+                                }
+                                SequentialAnimation {
+                                    running: root.animating && isMerged && isPrimary
+                                    PauseAnimation {
+                                        duration: root.moveDuration + root.mergePopDelay
+                                    }
+                                    NumberAnimation {
+                                        target: tileNode
+                                        property: "tileScale"
+                                        to: sceneRoot.cubeScale * 1.18
+                                        duration: root.mergePopDuration / 2
+                                        easing.type: Easing.OutQuad
+                                    }
+                                    NumberAnimation {
+                                        target: tileNode
+                                        property: "tileScale"
+                                        to: sceneRoot.cubeScale
+                                        duration: root.mergePopDuration / 2
+                                        easing.type: Easing.InQuad
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // spawn tile pop
+                    Node {
+                        id: spawnNode
+                        visible: root.animating && root.spawnIndex >= 0
+                        property real spawnScale: 0.0
+                        position: sceneRoot.idxToPos(root.spawnIndex)
+                        Model {
+                            source: "#Cube"
+                            scale: Qt.vector3d(sceneRoot.cubeScale * spawnScale, sceneRoot.cubeScale * spawnScale, sceneRoot.cubeScale * spawnScale)
+                            materials: [filledMat]
+                        }
+                        Node {
+                            visible: root.spawnValue > 0
+                            eulerRotation: camera.eulerRotation
+                            Model {
+                                source: "#Rectangle"
+                                position: Qt.vector3d(0, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                scale: Qt.vector3d(sceneRoot.labelScale, sceneRoot.labelScale, 1)
+                                materials: [
+                                    DefaultMaterial {
+                                        lighting: DefaultMaterial.NoLighting
+                                        cullMode: Material.NoCulling
+                                        opacity: 0.98
+                                        diffuseMap: Texture {
+                                            minFilter: Texture.Linear
+                                            magFilter: Texture.Linear
+                                            generateMipmaps: true
+                                            sourceItem: Rectangle {
+                                                width: 128
+                                                height: 128
+                                                radius: 24
+                                                color: "#0f172a"
+                                                border.color: "#a78bfa"
+                                                border.width: 2
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: root.spawnValue
+                                                    font.pixelSize: 56
+                                                    font.weight: Font.DemiBold
+                                                    color: "#e5e7eb"
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                        SequentialAnimation {
+                            running: root.animating && root.spawnIndex >= 0
+                            PauseAnimation {
+                                duration: root.moveDuration
+                            }
+                            NumberAnimation {
+                                target: spawnNode
+                                property: "spawnScale"
+                                to: 1.0
+                                duration: root.spawnDuration
+                                easing.type: Easing.OutBack
+                            }
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton
+
+                    property real lastX: 0
+                    property real lastY: 0
+                    property bool dragging: false
+
+                    onPressed: function (mouse) {
+                        dragging = true;
+                        lastX = mouse.x;
+                        lastY = mouse.y;
+                    }
+                    onReleased: dragging = false
+                    onPositionChanged: function (mouse) {
+                        if (!dragging)
+                            return;
+                        var dx = mouse.x - lastX;
+                        var dy = mouse.y - lastY;
+                        lastX = mouse.x;
+                        lastY = mouse.y;
+
+                        viewport.yaw = viewport.yaw - dx * 0.35;
+                        viewport.pitch = Math.max(-80, Math.min(80, viewport.pitch + dy * 0.35));
+                    }
+                    onWheel: function (wheel) {
+                        var delta = wheel.angleDelta.y / 120.0;
+                        viewport.distance = Math.max(220, Math.min(1200, viewport.distance - delta * 40));
+                        wheel.accepted = true;
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 48
+                radius: 14
+                color: "#0f172a"
+                border.color: "#2a3446"
+                border.width: 1
+
+                Text {
+                    id: lastMove
+                    anchors.centerIn: parent
+                    text: "Last move: —"
+                    font.pixelSize: 12
+                    color: "#9ca3af"
+                }
+            }
+
+            Button {
+                Layout.preferredWidth: 140
+                text: "重置视角"
+                onClicked: {
+                    viewport.yaw = 35;
+                    viewport.pitch = 20;
+                    viewport.distance = 520;
+                }
+                ControlsMaterial.Material.background: "#0f172a"
+                ControlsMaterial.Material.foreground: "#e5e7eb"
+            }
+        }
+    }
+
+    onMoveRequested: function (dir) {
+        lastMove.text = "Last move: " + dir;
+    }
 }

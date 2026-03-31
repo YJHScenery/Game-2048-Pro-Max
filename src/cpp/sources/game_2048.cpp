@@ -219,6 +219,86 @@ void Game2048::operate3D(const int size, const int dim, const MoveDirection dir)
         (void)m_GameBoard4x4x4.operateAndSpawn(dim, dir);
 }
 
+void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, const int dim, const MoveDirection dir)
+{
+    QVariantList outSize;
+    outSize.reserve(3);
+    outSize << size << size << size;
+
+    QVariantList flat;
+    QVariantList moves;
+    QVariantList merges;
+    QVariantMap spawn;
+
+    auto fillCommon = [&](const auto &trace)
+    {
+        moves.reserve(static_cast<int>(trace.moves.size()));
+        for (const auto &m : trace.moves)
+        {
+            QVariantMap mm;
+            mm.insert(QStringLiteral("from"), static_cast<qulonglong>(m.from));
+            mm.insert(QStringLiteral("to"), static_cast<qulonglong>(m.to));
+            mm.insert(QStringLiteral("value"), static_cast<qulonglong>(m.value));
+            mm.insert(QStringLiteral("merged"), m.merged);
+            mm.insert(QStringLiteral("primary"), m.primary);
+            moves << mm;
+        }
+
+        merges.reserve(static_cast<int>(trace.merges.size()));
+        for (const auto &me : trace.merges)
+        {
+            QVariantMap rm;
+            rm.insert(QStringLiteral("to"), static_cast<qulonglong>(me.to));
+            rm.insert(QStringLiteral("fromA"), static_cast<qulonglong>(me.fromA));
+            rm.insert(QStringLiteral("fromB"), static_cast<qulonglong>(me.fromB));
+            rm.insert(QStringLiteral("newValue"), static_cast<qulonglong>(me.newValue));
+            merges << rm;
+        }
+
+        if (trace.spawn.has_value())
+        {
+            spawn.insert(QStringLiteral("index"), static_cast<qulonglong>(trace.spawn->index));
+            spawn.insert(QStringLiteral("value"), static_cast<qulonglong>(trace.spawn->value));
+        }
+    };
+
+    if (size == 6)
+    {
+        const auto trace = m_GameBoard6x6x6.operateAndSpawnTrace(dim, dir);
+
+        const auto data = m_GameBoard6x6x6.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
+
+        fillCommon(trace);
+    }
+    else if (size == 8)
+    {
+        const auto trace = m_GameBoard8x8x8.operateAndSpawnTrace(dim, dir);
+
+        const auto data = m_GameBoard8x8x8.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
+
+        fillCommon(trace);
+    }
+    else
+    {
+        const auto trace = m_GameBoard4x4x4.operateAndSpawnTrace(dim, dir);
+
+        const auto data = m_GameBoard4x4x4.flatData();
+        flat.reserve(static_cast<int>(data.size()));
+        for (const auto v : data)
+            flat << static_cast<qulonglong>(v);
+
+        fillCommon(trace);
+    }
+
+    emit sendMoveTrace3D(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat, moves, merges, spawn);
+}
+
 void Game2048::on_ResetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
@@ -273,43 +353,37 @@ void Game2048::on_Left3D_operated(const QString &gameMode, const QVariantList &s
 {
     const int size = parse3DSize(sizeInfo);
     // x axis (fastest-changing) is dim=2
-    operate3D(size, 2, MoveDirection::Negative);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 2, MoveDirection::Negative);
 }
 
 void Game2048::on_Right3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
-    operate3D(size, 2, MoveDirection::Positive);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 2, MoveDirection::Positive);
 }
 
 void Game2048::on_Forward3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     // z axis (slowest-changing) is dim=0
-    operate3D(size, 0, MoveDirection::Negative);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 0, MoveDirection::Negative);
 }
 
 void Game2048::on_Back3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
-    operate3D(size, 0, MoveDirection::Positive);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 0, MoveDirection::Positive);
 }
 
 void Game2048::on_Down3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     // y axis is dim=1
-    operate3D(size, 1, MoveDirection::Negative);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 1, MoveDirection::Negative);
 }
 
 void Game2048::on_Up3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
-    operate3D(size, 1, MoveDirection::Positive);
-    emit3D(gameMode, size);
+    operate3DAndEmitTrace(gameMode, size, 1, MoveDirection::Positive);
 }
