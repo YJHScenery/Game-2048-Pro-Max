@@ -183,7 +183,7 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size
 
     int* device{nullptr};
 
-    if constexpr (Dimension <= 1) {
+    if constexpr (Dimension <= 10) {
         move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
     }else {
         // std::cout << "use NVIDIA Cuda GPU";

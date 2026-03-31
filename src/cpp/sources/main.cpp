@@ -92,6 +92,12 @@ int main(int argc, char *argv[])
 
     std::cout << "\n\n\n";
     testObject.outputData();
+
+    void benchmark_logic2048_tensor_6d_operate();
+    benchmark_logic2048_tensor_6d_operate();
+
+    void benchmark_logic2048_tensor_operate_custom();
+    benchmark_logic2048_tensor_operate_custom();
     return 0;
 
     // return QApplication::exec();

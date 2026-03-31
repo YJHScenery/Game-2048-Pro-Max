@@ -16,7 +16,7 @@ void move_lines_gpu(T* h_data, const LineDesc* h_lines, std::size_t line_count, 
 
 
 template<typename T, typename LineDesc, typename Device>
-void move_lines_gpu(T *h_data, const LineDesc *h_lines, std::size_t line_count, std::size_t line_len, Device* stream)
+void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_count, const std::size_t line_len, Device* stream)
 {
     using meta_type_ = T;
     if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)

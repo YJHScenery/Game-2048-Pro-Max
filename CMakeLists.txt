@@ -1,45 +1,19 @@
 cmake_minimum_required(VERSION 4.1.2)
 project(Game_2048_Quick LANGUAGES CXX CUDA)
 
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(HPC_PLATFORM CUDA)
+set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+set(CMAKE_CUDA_ARCHITECTURES 90)     # ✅ RTX 5070 专属算力9.0（关键！）
+# set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
 
-if(HPC_PLATFORM MATCHES "CUDA")
+# ===================== 3. 找到CUDA工具包（自动搜索） =====================
+find_package(CUDAToolkit REQUIRED)
 
-    set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_ARCHITECTURES 90)     # ✅ RTX 5070 专属算力9.0（关键！）
-    # set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
-
-    # ===================== 3. 找到CUDA工具包（自动搜索） =====================
-    find_package(CUDAToolkit REQUIRED)
-
-    set(CUDA_SOURCE_FILES
-            src/cpp/cuda/cuda_interface.cu
-    )
-
-    set(CANN_SOURCE_FILES
-    )
-
-elseif (HPC_PLATFORM MATCHES "CANN")
-
-    set(CUDA_SOURCE_FILES
-    )
-    set(CANN_SOURCE_FILES
-    )
-
-else()
-    set(CUDA_SOURCE_FILES
-    )
-    set(CANN_SOURCE_FILES
-    )
-
-endif ()
 
 set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
@@ -65,11 +39,19 @@ set(CPP_SOURCE_FILES
         src/cpp/sources/main.cpp
 )
 
+set(CUDA_SOURCE_FILES
+        src/cpp/cuda/cuda_interface.cu
+)
 
 set(RESOURCE_FILES
         src/resources/resources.qrc
         src/qml/qml.qrc
 
+)
+
+set(TEST_SOURCE_FILES
+        test/benchmark_logic_tensor_6d.cpp
+        test/benchmark_logic_tensor_ndim_template.cpp
 )
 
 
@@ -86,7 +68,7 @@ add_executable(${PROJECT_NAME}
         ${CPP_HEADER_FILES}
         ${CPP_SOURCE_FILES}
         ${CUDA_SOURCE_FILES}
-        ${CANN_SOURCE_FILES}
+        ${TEST_SOURCE_FILES}
         ${RESOURCE_FILES}
         )
 
@@ -96,12 +78,8 @@ foreach (QT_LIB ${QT_PACKAGES_LIST})
     )
 endforeach ()
 
-if(HPC_PLATFORM MATCHES "CUDA")
 # ===================== 6. 链接CUDA核心库 =====================
 target_link_libraries(${PROJECT_NAME} PRIVATE CUDA::cudart CUDA::cuda_driver)
-elseif (HPC_PLATFORM MATCHES "CANN")
-else ()
-endif ()
 
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(DEBUG_SUFFIX)
