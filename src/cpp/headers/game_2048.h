@@ -10,7 +10,6 @@
 #include <QList>
 #include <QString>
 #include <QVariant>
-#include <QVector>
 
 struct GameData
 {
@@ -31,11 +30,6 @@ class Game2048 : public QObject
 public:
     explicit Game2048(QObject *parent = nullptr);
 
-    int parse2DSize(const QVariantList &sizeInfo) const;
-    void emit2D(const QString &gameMode, int size);
-    void reset2D(int size);
-    void operate2D(int size, int dim, MoveDirection dir);
-
 public slots:
     void on_ResetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo);
 
@@ -51,26 +45,37 @@ public slots:
 
     void on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo);
 
+    // ---- 3D slots (avoid name clash with 2D) ----
+    void on_ResetGame3D_emitted(const QString &gameMode, const QVariantList &sizeInfo);
 
+    void on_Left3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
+    void on_Right3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
+    void on_Forward3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
+    void on_Back3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
+    void on_Down3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
+    void on_Up3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
 
 signals:
     void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
+    // ---- 3D signal (avoid name clash with 2D) ----
+    void sendGameData3D(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
+
 private:
-    // bool ensure2DBoard(const QString &gameMode, const QVariantList &sizeInfo);
-    // void reset2DBoard();
-    // bool move2DUp();
-    // bool move2DDown();
-    // bool move2DLeft();
-    // bool move2DRight();
-    // void addRandomTile2D();
-    // void emit2D();
+    int parse2DSize(const QVariantList &sizeInfo) const;
+    void emit2D(const QString &gameMode, int size);
+    void reset2D(int size);
+    void operate2D(int size, int dim, MoveDirection dir);
 
-    QString m_currentGameMode{"Static"};
-    int m_rows2D{4};
-    int m_cols2D{4};
-
-    QVector<size_t> m_board2D;
+    int parse3DSize(const QVariantList &sizeInfo) const;
+    void emit3D(const QString &gameMode, int size);
+    void reset3D(int size);
+    void operate3D(int size, int dim, MoveDirection dir);
 
     Logic2048_tm<size_t, size_t, 2, 4, 4> m_GameBoard4x4;
     Logic2048_tm<size_t, size_t, 2, 6, 6> m_GameBoard6x6;

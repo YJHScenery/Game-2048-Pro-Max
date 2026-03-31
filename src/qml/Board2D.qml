@@ -10,7 +10,7 @@ Item {
 		target: game2048
 
 		function onSendGameData(gameMode, sizeInfo, flatData) {
-			console.log("C++Server Send Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
+			// console.log("C++Server Send Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
 			if (flatData !== undefined && flatData !== null) {
 				values = flatData
 			}

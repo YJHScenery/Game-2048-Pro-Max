@@ -5,12 +5,28 @@ import QtQuick.Layouts
 import QtQuick3D
 
 Item {
+	Connections{
+		target: game2048
+
+		function onSendGameData3D(gameMode, sizeInfo, flatData) {
+			// console.log("C++Server Send 3D Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
+			if (sizeInfo && sizeInfo.length >= 3) {
+				size = Number(sizeInfo[0])
+				depth = Number(sizeInfo[2])
+			}
+			if (flatData !== undefined && flatData !== null) {
+				values = flatData
+			}
+		}
+	}
+
 	id: root
 	focus: true
 
 	property int size: 4
 	property int depth: 4
 	property var values: [] // length = size*size*depth
+	property string gameMode: "Static"
 
 	signal moveRequested(string direction) // left/right/forward/back/up/down
 
@@ -25,18 +41,16 @@ Item {
 	}
 
 	function seedValues() {
+		if (game2048 && game2048.on_ResetGame3D_emitted) {
+			game2048.on_ResetGame3D_emitted(gameMode, [safeSize, safeSize, safeDepth])
+			return
+		}
+		// fallback: local deterministic seed
 		var n = cellCount
 		var arr = new Array(n)
 		for (var i = 0; i < n; i++) arr[i] = 0
-
 		function idx(x, y, z) { return z * safeSize * safeSize + y * safeSize + x }
-
 		arr[idx(0, 0, 0)] = 2
-		arr[idx(1, 1, 0)] = 4
-		arr[idx(2, 2, 1)] = 8
-		arr[idx(safeSize - 1, safeSize - 1, safeDepth - 1)] = 16
-		arr[idx(Math.floor(safeSize / 2), 0, Math.floor(safeDepth / 2))] = 32
-
 		values = arr
 	}
 
@@ -53,29 +67,35 @@ Item {
 		case Qt.Key_Left:
 		case Qt.Key_A:
 			moveRequested("left")
+			if (game2048 && game2048.on_Left3D_operated) game2048.on_Left3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		case Qt.Key_Right:
 		case Qt.Key_D:
 			moveRequested("right")
+			if (game2048 && game2048.on_Right3D_operated) game2048.on_Right3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		case Qt.Key_Up:
 		case Qt.Key_W:
 			moveRequested("forward")
+			if (game2048 && game2048.on_Forward3D_operated) game2048.on_Forward3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		case Qt.Key_Down:
 		case Qt.Key_S:
 			moveRequested("back")
+			if (game2048 && game2048.on_Back3D_operated) game2048.on_Back3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		case Qt.Key_Q:
 			moveRequested("down")
+			if (game2048 && game2048.on_Down3D_operated) game2048.on_Down3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		case Qt.Key_E:
 			moveRequested("up")
+			if (game2048 && game2048.on_Up3D_operated) game2048.on_Up3D_operated(gameMode, [safeSize, safeSize, safeDepth])
 			event.accepted = true
 			break
 		default:
