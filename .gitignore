@@ -4,4 +4,8 @@
 
 .qtcreator
 
+release/
+
+*.zip
+
 src/qml/*.autosave
