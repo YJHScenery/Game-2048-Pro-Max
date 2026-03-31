@@ -1,5 +1,7 @@
 <RCC>
 	<qresource prefix="/qml">
 		<file>Main.qml</file>
+		<file>Board2D.qml</file>
+		<file>Board3D.qml</file>
 	</qresource>
 </RCC>

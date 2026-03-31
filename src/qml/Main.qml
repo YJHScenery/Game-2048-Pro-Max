@@ -34,6 +34,29 @@ ApplicationWindow {
 		return dims === 2 ? (size + "×" + size + " 2D") : (size + "×" + size + "×" + depth + " 3D")
 	}
 
+	function modeForIndex(idx) {
+		if (idx < 0 || idx >= modeModel.count) return null
+		return modeModel.get(idx)
+	}
+
+	function syncBoardFromMode() {
+		if (root.isCustomMode) return
+		var mode = root.modeForIndex(root.selectedIndex)
+		if (!mode) return
+		if (!boardLoader || !boardLoader.item) return
+		if (mode.dims === 2) {
+			boardLoader.item.rows = mode.size
+			boardLoader.item.columns = mode.size
+		} else {
+			boardLoader.item.size = mode.size
+			boardLoader.item.depth = mode.depth
+		}
+		if (boardLoader.item.seedValues) boardLoader.item.seedValues()
+		if (boardLoader.item.forceActiveFocus) boardLoader.item.forceActiveFocus()
+	}
+
+	onSelectedIndexChanged: Qt.callLater(root.syncBoardFromMode)
+
 	Rectangle {
 		anchors.fill: parent
 		gradient: Gradient {
@@ -239,7 +262,7 @@ ApplicationWindow {
 						spacing: 2
 						Text {
 							Layout.fillWidth: true
-							text: root.isCustomMode ? "自定义模式" : ("模式预览 · " + root.selectedMode.title)
+							text: root.isCustomMode ? "自定义模式" : (root.selectedMode ? ("模式预览 · " + root.selectedMode.title) : "模式预览")
 							font.pixelSize: 20
 							font.weight: Font.DemiBold
 							color: "#e5e7eb"
@@ -247,7 +270,7 @@ ApplicationWindow {
 						}
 						Text {
 							Layout.fillWidth: true
-							text: root.isCustomMode ? "这里可以放置自定义尺寸输入UI" : root.selectedMode.subtitle
+							text: root.isCustomMode ? "这里可以放置自定义尺寸输入UI" : (root.selectedMode ? root.selectedMode.subtitle : "—")
 							font.pixelSize: 13
 							color: "#9ca3af"
 							elide: Text.ElideRight
@@ -374,197 +397,90 @@ ApplicationWindow {
 								Layout.fillHeight: true
 
 								Loader {
-									anchors.centerIn: parent
+									id: boardLoader
+									anchors.fill: parent
 									active: true
-									sourceComponent: root.isCustomMode ? customPlaceholder : boardPreview
+									sourceComponent: root.isCustomMode ? customPlaceholder : null
+									source: {
+										if (root.isCustomMode) return ""
+										var mode = root.modeForIndex(root.selectedIndex)
+										if (!mode) return ""
+										return mode.dims === 2 ? "qrc:/qml/Board2D.qml" : "qrc:/qml/Board3D.qml"
+									}
+									onLoaded: Qt.callLater(root.syncBoardFromMode)
+									onStatusChanged: {
+									if (status === Loader.Ready) Qt.callLater(root.syncBoardFromMode)
 								}
-							}
+								}
 
-							RowLayout {
-								Layout.fillWidth: true
-								spacing: 10
-
-								Button {
-									Layout.fillWidth: true
-									text: "开始游戏"
-									enabled: false
-								}
-								Button {
-									Layout.preferredWidth: 160
-									text: "重置"
-									enabled: false
-								}
-							}
-						}
-					}
-
-					Component {
-						id: customPlaceholder
-						Rectangle {
-							width: 560
-							height: 360
-							radius: 18
-							color: "#0b1220"
-							border.width: 1
-							border.color: "#22304a"
-							ColumnLayout {
-								anchors.fill: parent
-								anchors.margins: 20
-								spacing: 10
-								Text {
-									text: "自定义尺寸"
-									font.pixelSize: 20
-									font.weight: Font.DemiBold
-									color: "#e5e7eb"
-								}
-								Text {
-									text: "本次按你的要求只搭界面：这里预留自定义尺寸的输入面板位置（例如 行/列/深度）。"
-									wrapMode: Text.WordWrap
-									font.pixelSize: 13
-									color: "#9ca3af"
-								}
 								Rectangle {
-									Layout.fillWidth: true
-									Layout.fillHeight: true
-									radius: 14
-									color: "#0f172a"
-									border.color: "#2a3446"
+									anchors.fill: parent
+									visible: boardLoader.status === Loader.Error
+									radius: 18
+									color: "#0b1220"
+									border.color: "#7f1d1d"
 									border.width: 1
-									Text {
-										anchors.centerIn: parent
-										text: "[ 这里放输入控件 / 校验 / 保存按钮 —— 当前未实现 ]"
-										color: "#94a3b8"
-										font.pixelSize: 13
+									ColumnLayout {
+										anchors.fill: parent
+										anchors.margins: 18
+										spacing: 10
+										Text {
+											text: "棋盘加载失败"
+											font.pixelSize: 18
+											font.weight: Font.DemiBold
+											color: "#fecaca"
+										}
+										Text {
+											Layout.fillWidth: true
+											text: boardLoader.errorString()
+											wrapMode: Text.WordWrap
+											font.pixelSize: 12
+											color: "#fca5a5"
+										}
 									}
 								}
 							}
 						}
 					}
+				}
 
-					Component {
-						id: boardPreview
-						Item {
-							id: preview
-							readonly property int dims: root.selectedMode ? root.selectedMode.dims : 0
-							readonly property int size: root.selectedMode ? root.selectedMode.size : 0
-							readonly property int depth: root.selectedMode ? root.selectedMode.depth : 0
-
-							width: Math.min(boardArea.width, boardArea.height) * 0.92
-							height: width
-
-							Rectangle {
-								anchors.fill: parent
-								radius: 22
-								color: "#0b1220"
-								border.color: "#22304a"
-								border.width: 1
+				Component {
+					id: customPlaceholder
+					Rectangle {
+						width: 560
+						height: 360
+						radius: 18
+						color: "#0b1220"
+						border.width: 1
+						border.color: "#22304a"
+						ColumnLayout {
+							anchors.fill: parent
+							anchors.margins: 20
+							spacing: 10
+							Text {
+								text: "自定义尺寸"
+								font.pixelSize: 20
+								font.weight: Font.DemiBold
+								color: "#e5e7eb"
 							}
-
-							Item {
-								id: stage
-								anchors.centerIn: parent
-								width: parent.width * 0.88
-								height: parent.height * 0.88
-
-								Item {
-									id: twoD
+							Text {
+								text: "本次按你的要求只搭界面：这里预留自定义尺寸的输入面板位置（例如 行/列/深度）。"
+								wrapMode: Text.WordWrap
+								font.pixelSize: 13
+								color: "#9ca3af"
+							}
+							Rectangle {
+								Layout.fillWidth: true
+								Layout.fillHeight: true
+								radius: 14
+								color: "#0f172a"
+								border.color: "#2a3446"
+								border.width: 1
+								Text {
 									anchors.centerIn: parent
-									visible: preview.dims === 2
-									width: Math.min(parent.width, parent.height)
-									height: width
-
-									Grid {
-										id: grid2d
-										anchors.fill: parent
-										columns: Math.max(1, preview.size)
-										rows: Math.max(1, preview.size)
-										spacing: Math.max(6, Math.floor(width / 64))
-
-										Repeater {
-											model: preview.size * preview.size
-											delegate: Rectangle {
-												width: (grid2d.width - grid2d.spacing * (grid2d.columns - 1)) / grid2d.columns
-												height: width
-												radius: Math.max(8, width * 0.18)
-												color: "#111827"
-												border.width: 1
-												border.color: "#2a3446"
-
-												Rectangle {
-													anchors.fill: parent
-													radius: parent.radius
-													gradient: Gradient {
-														GradientStop { position: 0.0; color: "#0f172a" }
-														GradientStop { position: 1.0; color: "#0b1220" }
-													}
-													opacity: 0.95
-												}
-											}
-										}
-									}
-								}
-
-								Item {
-									id: threeD
-									anchors.centerIn: parent
-									visible: preview.dims === 3
-									width: Math.min(parent.width, parent.height)
-									height: width
-
-									readonly property int sliceCount: Math.min(3, Math.max(1, preview.depth))
-
-									Repeater {
-										model: threeD.sliceCount
-										delegate: Item {
-											width: threeD.width
-											height: threeD.height
-											anchors.centerIn: parent
-
-											property real t: (threeD.sliceCount <= 1) ? 0 : (index / (threeD.sliceCount - 1))
-											scale: 1.0 - t * 0.12
-											x: t * 26
-											y: -t * 18
-											opacity: 0.92 - t * 0.22
-
-											Rectangle {
-												anchors.fill: parent
-												radius: 18
-												color: "#0b1220"
-												border.color: "#22304a"
-												border.width: 1
-											}
-
-											Grid {
-												id: grid3d
-												anchors.fill: parent
-												anchors.margins: 18
-												columns: Math.max(1, preview.size)
-												rows: Math.max(1, preview.size)
-												spacing: Math.max(6, Math.floor(width / 64))
-
-												Repeater {
-													model: preview.size * preview.size
-													delegate: Rectangle {
-														width: (grid3d.width - grid3d.spacing * (grid3d.columns - 1)) / grid3d.columns
-														height: width
-														radius: Math.max(8, width * 0.18)
-														color: "#111827"
-														border.width: 1
-														border.color: "#2a3446"
-													}
-												}
-											}
-
-											Text {
-												anchors.left: parent.left
-												anchors.top: parent.top
-												anchors.margins: 12
-												text: "Layer " + (index + 1)
-												font.pixelSize: 12
-												color: "#9ca3af"
-											}
-										}
-									}
+									text: "[ 这里放输入控件 / 校验 / 保存按钮 —— 当前未实现 ]"
+									color: "#94a3b8"
+									font.pixelSize: 13
 								}
 							}
 						}

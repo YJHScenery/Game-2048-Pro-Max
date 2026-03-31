@@ -57,6 +57,7 @@ set(TEST_SOURCE_FILES
 
 set(QT_PACKAGES_LIST
         Core Gui Widgets Quick Qml
+		Quick3D
 )
 
 
