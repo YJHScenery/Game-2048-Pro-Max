@@ -108,6 +108,20 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
                 "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
+
+        find_program(WINDEPLOYQT_EXECUTABLE
+                        NAMES windeployqt
+                        HINTS "${QT_INSTALL_PATH}/bin")
+        if (WINDEPLOYQT_EXECUTABLE)
+                add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                                COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                                --no-translations
+                                --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/src/qml"
+                                "$<TARGET_FILE:${PROJECT_NAME}>"
+                                COMMENT "Deploying Qt runtime + QML modules via windeployqt")
+        else ()
+                message(WARNING "windeployqt not found under '${QT_INSTALL_PATH}/bin'. QML modules (QtQuick/Controls/Layouts) may fail to load at runtime.")
+        endif ()
 endif ()
 
 

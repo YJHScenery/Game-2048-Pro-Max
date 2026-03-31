@@ -1,6 +1,9 @@
-#include <QApplication>
-#include <QPushButton>
+#include <QGuiApplication>
+#include <QCoreApplication>
+#include <QQmlApplicationEngine>
+#include <cstring>
 #include <iostream>
+#include <string>
 
 #include "logic_2048_pm.h"
 
@@ -9,13 +12,12 @@
 #ifndef CUDA_UNAVAILABLE
 #include <cuda_runtime.h>
 
-
-#define CHECK_CUDA_ERROR(err) \
-if (err != cudaSuccess) { \
-OUTPUT_STREAM << "CUDA ERROR: " << cudaGetErrorString(err) << " (Line: " << __LINE__ << ")" << std::endl; \
-return 1; \
-}
-
+#define CHECK_CUDA_ERROR(err)                                                                                     \
+    if (err != cudaSuccess)                                                                                       \
+    {                                                                                                             \
+        OUTPUT_STREAM << "CUDA ERROR: " << cudaGetErrorString(err) << " (Line: " << __LINE__ << ")" << std::endl; \
+        return 1;                                                                                                 \
+    }
 
 int testCuda()
 {
@@ -41,7 +43,6 @@ int testCuda()
     OUTPUT_STREAM << "=====================================" << std::endl;
     OUTPUT_STREAM << "CUDA Toolkit Test Successfully! " << std::endl;
 
-
     return 0;
 }
 #else
@@ -52,41 +53,38 @@ int testCuda()
 }
 
 #endif
-#define OUTPUT_STREAM std::cout
 
-
-int main(int argc, char *argv[])
+static int runBenchmarks()
 {
-    // QApplication a(argc, argv);
-
-
     size_t custom_values[64] = {
-        0, 0, 0, 2, 0, 0, 0, 2,
-        0, 2, 2, 0, 2, 2, 2, 2,
+        0, 0, 0, 2,
+        0, 0, 0, 2,
+        0, 2, 2, 0,
+        2, 2, 2, 2,
 
-        0, 0, 4, 4, 2, 2, 4, 8,
-        4, 4, 8, 2, 0, 0, 0, 0,
+        0, 0, 4, 4,
+        2, 2, 4, 8,
+        4, 4, 8, 2,
+        0, 0, 0, 0,
 
-        0, 0, 0, 2, 0, 0, 0, 2,
-        0, 2, 2, 0, 2, 2, 2, 2,
+        0, 0, 0, 2,
+        0, 0, 0, 2,
+        0, 2, 2, 0,
+        2, 2, 2, 2,
 
-        2, 2, 4, 8, 0, 0, 0, 2,
-        0, 2, 2, 0, 2, 2, 2, 2,
-
+        2, 2, 4, 8,
+        0, 0, 0, 2,
+        0, 2, 2, 0,
+        2, 2, 2, 2,
     };
 
-    // 步骤2: 创建4x4x4 Tensor
     Logic2048_tm<size_t, size_t, 2, 8, 8>::data_mesh_type_ tensor(8ull, 8ull);
-
-    // 步骤3: 复制数据（确保大小匹配）
     std::memcpy(tensor.data(), custom_values, sizeof(custom_values));
-
 
     Logic2048_tm<size_t, size_t, 2, 8, 8> testObject{tensor};
 
     testCuda();
     testObject.outputData();
-
 
     testObject.operate(1, MoveDirection::Negative);
 
@@ -98,7 +96,36 @@ int main(int argc, char *argv[])
 
     void benchmark_logic2048_tensor_operate_custom();
     benchmark_logic2048_tensor_operate_custom();
-    return 0;
 
-    // return QApplication::exec();
+    return 0;
+}
+
+int main(int argc, char* argv[])
+{
+    if (argc >= 2 && std::string(argv[1]) == "--bench") {
+        return runBenchmarks();
+    }
+
+    QGuiApplication app(argc, argv);
+
+    QQmlApplicationEngine engine;
+    engine.addImportPath(QCoreApplication::applicationDirPath() + "/qml");
+    const QUrl url(QStringLiteral("qrc:/qml/Main.qml"));
+    QObject::connect(
+        &engine,
+        &QQmlApplicationEngine::objectCreated,
+        &app,
+        [url](QObject* obj, const QUrl& objUrl)
+        {
+            if (!obj && url == objUrl) {
+                QCoreApplication::exit(-1);
+            }
+        },
+        Qt::QueuedConnection);
+
+    engine.load(url);
+    if (engine.rootObjects().isEmpty()) {
+        return -1;
+    }
+    return app.exec();
 }
