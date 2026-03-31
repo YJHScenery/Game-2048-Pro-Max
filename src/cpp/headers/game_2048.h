@@ -10,6 +10,7 @@
 #include <QList>
 #include <QString>
 #include <QVariant>
+#include <QVariantMap>
 
 struct GameData
 {
@@ -63,6 +64,14 @@ public slots:
 signals:
     void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
+    // 2D move trace for animation (方案1)
+    void sendMoveTrace2D(const QString &gameMode,
+                         const QVariantList &sizeInfo,
+                         const QVariantList &flatData,
+                         const QVariantList &moves,
+                         const QVariantList &merges,
+                         const QVariantMap &spawn);
+
     // ---- 3D signal (avoid name clash with 2D) ----
     void sendGameData3D(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
@@ -71,6 +80,7 @@ private:
     void emit2D(const QString &gameMode, int size);
     void reset2D(int size);
     void operate2D(int size, int dim, MoveDirection dir);
+    void operate2DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
     int parse3DSize(const QVariantList &sizeInfo) const;
     void emit3D(const QString &gameMode, int size);

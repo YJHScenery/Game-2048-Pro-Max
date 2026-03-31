@@ -13,7 +13,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <type_traits>
+#include <utility>
 #include <vector>
 #include <random>
 
@@ -68,6 +70,43 @@ public:
      */
     bool operateAndSpawn(size_type_ dim, MoveDirection dir);
 
+    struct TileMoveTrace
+    {
+        size_type_ from{};  // flat index
+        size_type_ to{};    // flat index
+        meta_type_ value{}; // value before move
+        bool merged{};      // whether this source tile participates in a merge
+        bool primary{};     // for merged pair: the first tile (kept) vs second (consumed)
+    };
+
+    struct TileMergeTrace
+    {
+        size_type_ to{};
+        size_type_ fromA{};
+        size_type_ fromB{};
+        meta_type_ newValue{};
+    };
+
+    struct SpawnTrace
+    {
+        size_type_ index{};
+        meta_type_ value{};
+    };
+
+    struct MoveTrace
+    {
+        bool changed{false};
+        std::vector<TileMoveTrace> moves;
+        std::vector<TileMergeTrace> merges;
+        std::optional<SpawnTrace> spawn;
+    };
+
+    /**
+     * @brief 执行一次移动并返回移动/合并/生成的 trace（用于 UI 动画）。
+     * @note 当前 trace 由 CPU 路径生成；与 move_lines_cpu 逻辑保持一致。
+     */
+    MoveTrace operateAndSpawnTrace(size_type_ dim, MoveDirection dir);
+
     /**
      * @brief 返回 RowMajor 扁平化数据（复制）。
      */
@@ -93,6 +132,7 @@ public:
 private:
     bool operateInternal(size_type_ dim, MoveDirection dir);
     bool spawnRandomTile();
+    bool spawnRandomTile(SpawnTrace &out);
     meta_type_ sampleNewTileValue();
 
     /**
@@ -243,6 +283,171 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSp
 }
 
 CURRENT_TEMPLATE_DEFINITION
+typename Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::MoveTrace
+Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawnTrace(size_type_ dim, const MoveDirection dir)
+{
+    MoveTrace trace;
+
+    if (dim >= Dimension)
+        return trace;
+
+    const size_type_ line_len{sizes_[dim]};
+    if (line_len == 0)
+        return trace;
+
+    constexpr size_type_ total_elems = total_elems_;
+    if (total_elems % line_len != 0)
+        return trace;
+
+    const size_type_ line_count = total_elems / line_len;
+    const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
+    const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
+                              ((dir == MoveDirection::Negative) ? static_cast<std::int64_t>(1)
+                                                                : static_cast<std::int64_t>(-1));
+
+    std::vector<StandardLineDesc> lines;
+    lines.reserve(static_cast<std::size_t>(line_count));
+
+    std_size_mesh_type_ idx{};
+    idx[dim] = start_index;
+
+    while (true)
+    {
+        std::uint64_t offset = 0;
+        for (size_type_ d = 0; d < Dimension; ++d)
+            offset += static_cast<std::uint64_t>(idx[d] * strides_[d]);
+
+        lines.push_back(StandardLineDesc{offset, step});
+
+        // odometer increment on all dims except dim
+        std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
+        for (; carry_dim >= 0; --carry_dim)
+        {
+            const auto d = static_cast<size_type_>(carry_dim);
+            if (d == dim)
+                continue;
+            ++idx[d];
+            if (idx[d] < sizes_[d])
+                break;
+            idx[d] = 0;
+        }
+
+        if (carry_dim < 0)
+            break;
+    }
+
+    if (lines.size() != static_cast<std::size_t>(line_count))
+        return trace;
+
+    meta_type_ *raw = m_data.data();
+
+    // operateInternal 当前使用 long long 作为统一缓冲；trace 也沿用以保持一致。
+    std::vector<long long> buf(total_elems);
+    for (size_type_ i = 0; i < total_elems; ++i)
+        buf[i] = static_cast<long long>(raw[i]);
+
+    const std::vector<long long> before = buf;
+
+    trace.moves.reserve(static_cast<std::size_t>(total_elems));
+    trace.merges.reserve(static_cast<std::size_t>(total_elems / 2));
+
+    for (std::size_t line_id = 0; line_id < static_cast<std::size_t>(line_count); ++line_id)
+    {
+        const StandardLineDesc desc = lines[line_id];
+        const std::uint64_t base = desc.start;
+        const std::int64_t lstep = desc.step;
+
+        struct ReadTile
+        {
+            size_type_ pos;
+            long long value;
+        };
+
+        std::vector<ReadTile> readTiles;
+        readTiles.reserve(static_cast<std::size_t>(line_len));
+
+        for (size_type_ read = 0; read < line_len; ++read)
+        {
+            const std::int64_t pos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(read) * lstep;
+            const auto ipos = static_cast<size_type_>(pos);
+            const long long v = before[ipos];
+            if (v == 0)
+                continue;
+            readTiles.push_back(ReadTile{ipos, v});
+        }
+
+        bool has_prev = false;
+        ReadTile prev{};
+        size_type_ write = 0;
+
+        for (const auto &t : readTiles)
+        {
+            if (!has_prev)
+            {
+                prev = t;
+                has_prev = true;
+                continue;
+            }
+
+            if (t.value == prev.value)
+            {
+                const long long merged = prev.value + t.value;
+                const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
+                const auto iwpos = static_cast<size_type_>(wpos);
+                buf[iwpos] = merged;
+
+                trace.moves.push_back(TileMoveTrace{prev.pos, iwpos, static_cast<meta_type_>(prev.value), true, true});
+                trace.moves.push_back(TileMoveTrace{t.pos, iwpos, static_cast<meta_type_>(t.value), true, false});
+                trace.merges.push_back(TileMergeTrace{iwpos, prev.pos, t.pos, static_cast<meta_type_>(merged)});
+
+                ++write;
+                has_prev = false;
+            }
+            else
+            {
+                const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
+                const auto iwpos = static_cast<size_type_>(wpos);
+                buf[iwpos] = prev.value;
+                trace.moves.push_back(TileMoveTrace{prev.pos, iwpos, static_cast<meta_type_>(prev.value), false, true});
+                ++write;
+
+                prev = t;
+                has_prev = true;
+            }
+        }
+
+        if (has_prev)
+        {
+            const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
+            const auto iwpos = static_cast<size_type_>(wpos);
+            buf[iwpos] = prev.value;
+            trace.moves.push_back(TileMoveTrace{prev.pos, iwpos, static_cast<meta_type_>(prev.value), false, true});
+            ++write;
+        }
+
+        for (size_type_ i = write; i < line_len; ++i)
+        {
+            const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(i) * lstep;
+            const auto iwpos = static_cast<size_type_>(wpos);
+            buf[iwpos] = 0;
+        }
+    }
+
+    trace.changed = (buf != before);
+    for (size_type_ i = 0; i < total_elems; ++i)
+        raw[i] = static_cast<meta_type_>(buf[i]);
+
+    if (trace.changed)
+    {
+        SpawnTrace s;
+        if (spawnRandomTile(s))
+            trace.spawn = s;
+    }
+
+    return trace;
+}
+
+CURRENT_TEMPLATE_DEFINITION
 std::vector<typename Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::meta_type_>
 Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::flatData() const
 {
@@ -276,6 +481,30 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomT
     std::uniform_int_distribution<std::size_t> pick(0, empties.size() - 1);
     const auto chosen = empties[pick(m_rng)];
     raw[chosen] = sampleNewTileValue();
+    return true;
+}
+
+CURRENT_TEMPLATE_DEFINITION
+bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace &out)
+{
+    meta_type_ *raw = m_data.data();
+    std::vector<size_type_> empties;
+    empties.reserve(static_cast<std::size_t>(total_elems_));
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
+        if (raw[i] == static_cast<meta_type_>(0))
+            empties.push_back(i);
+    }
+    if (empties.empty())
+        return false;
+
+    std::uniform_int_distribution<std::size_t> pick(0, empties.size() - 1);
+    const auto chosen = empties[pick(m_rng)];
+    const auto val = sampleNewTileValue();
+    raw[chosen] = val;
+
+    out.index = chosen;
+    out.value = val;
     return true;
 }
 
