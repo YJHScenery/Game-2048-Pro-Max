@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1.2)
+cmake_minimum_required(VERSION 3.30.1)
 project(Game_2048_Quick LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 20)
