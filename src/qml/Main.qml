@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
+import QtQuick.Layouts
+import QtQuick.Window
 
 ApplicationWindow {
 	id: root
@@ -432,7 +432,9 @@ ApplicationWindow {
 										}
 										Text {
 											Layout.fillWidth: true
-											text: boardLoader.errorString()
+											text: (boardLoader.errorString !== undefined && boardLoader.errorString !== null)
+												? String(boardLoader.errorString)
+												: ""
 											wrapMode: Text.WordWrap
 											font.pixelSize: 12
 											color: "#fca5a5"
