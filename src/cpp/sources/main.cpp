@@ -78,6 +78,7 @@ static int runBenchmarks()
         2, 2, 2, 2,
     };
 
+
     Logic2048_tm<size_t, size_t, 2, 8, 8>::data_mesh_type_ tensor(8ull, 8ull);
     std::memcpy(tensor.data(), custom_values, sizeof(custom_values));
 
