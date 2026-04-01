@@ -6,7 +6,7 @@
 #include <string>
 #include <QQmlContext>
 
-#include "logic_2048_pm.h"
+#include "logic_2048_tmp.h"
 #include "game_2048.h"
 #include <QIcon>
 

@@ -2,7 +2,7 @@
 // Created by jehor on 2026/3/31.
 //
 #include <iostream>
-#include "logic_2048_pm.h"
+#include "logic_2048_tmp.h"
 
 #define OUTPUT_STREAM std::cout
 
@@ -53,7 +53,7 @@ int testCuda()
 
 int runBenchmarks()
 {
-    size_t custom_values[64] = {
+    constexpr size_t custom_values[64] = {
         0, 0, 0, 2,
         0, 0, 0, 2,
         0, 2, 2, 0,

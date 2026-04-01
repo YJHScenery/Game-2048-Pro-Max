@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "logic_2048_pm.h"
+#include "logic_2048_tmp.h"
 
 // 6D: 8*8*8*8*8*8 tensor benchmark for Logic2048_tm::operate()
 // Note: This file is intentionally self-contained and does not modify CMake.

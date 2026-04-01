@@ -4,7 +4,7 @@
 
 #ifndef GAME_2048_QUICK_GAME_2048_H
 #define GAME_2048_QUICK_GAME_2048_H
-#include "logic_2048_pm.h"
+#include "logic_2048_tmp.h"
 #include <QObject>
 
 #include <QList>

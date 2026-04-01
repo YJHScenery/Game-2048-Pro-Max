@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "logic_2048_pm.h"
+#include "logic_2048_tmp.h"
 
 // Generic N-D tensor benchmark for Logic2048_tm::operate().
 // This file is intentionally self-contained and does not modify CMake.

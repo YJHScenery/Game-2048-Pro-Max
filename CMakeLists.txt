@@ -25,7 +25,7 @@ include_directories(
 
 
 set(CPP_HEADER_FILES
-        src/cpp/headers/logic_2048_pm.h
+        src/cpp/headers/logic_2048_tmp.h
         src/cpp/headers/cuda_interface.h
         src/cpp/headers/tmp_utility.h
         src/cpp/headers/hpc_interface.h
@@ -33,10 +33,11 @@ set(CPP_HEADER_FILES
         src/cpp/headers/cpu_interface.h
         src/cpp/headers/basic_dependency.h
         src/cpp/headers/game_2048.h
+        src/cpp/headers/logic_2048_dynamic.h
 )
 
 set(CPP_SOURCE_FILES
-        src/cpp/sources/logic_2048_pm.cpp
+        src/cpp/sources/logic_2048_dynamic.cpp
         src/cpp/sources/main.cpp
         src/cpp/sources/game_2048.cpp
 )
