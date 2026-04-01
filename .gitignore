@@ -1,5 +1,7 @@
 *build*/
 
+include/
+
 .idea/
 
 .qtcreator

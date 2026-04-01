@@ -242,18 +242,18 @@ __global__ void move_lines_uld_kernel(double *data, const StandardLineDesc *line
 static inline dim3 choose_block_dim(std::size_t n)
 {
     (void)n;
-    return dim3(256, 1, 1);
+    return {256, 1, 1};
 }
 
 static inline dim3 choose_grid_dim(std::size_t n, dim3 block)
 {
     const std::size_t blocks = (n + block.x - 1) / block.x;
-    return dim3(static_cast<unsigned int>(blocks), 1, 1);
+    return {static_cast<unsigned int>(blocks), 1, 1};
 }
 
 // -------------------- public API --------------------
 
-void cuda_move_lines_ll(long long *h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
+void cuda_move_lines_ll(long long *h_data, const StandardLineDesc *h_lines, const std::size_t line_count, const std::size_t line_len,
                         cudaStream_t stream)
 {
     if (line_count == 0 || line_len == 0)
