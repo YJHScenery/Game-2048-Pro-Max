@@ -32,12 +32,22 @@ Item {
     readonly property color textMain: "#e5e7eb"
     readonly property color textSub: "#9ca3af"
 
+    // 3D hint color mapping (keep transparency)
+    readonly property color hintXColor: "#ef4444" // AD / X
+    readonly property color hintYColor: "#3b82f6" // SW / Y
+    readonly property color hintZColor: "#22c55e" // QE / Z
+    readonly property real hintKeyFillAlpha: 0.22
+    readonly property real hintAxisAlpha: 0.8
+
     component KeyCap: Rectangle {
         required property string label
         required property bool enabled
 
+        property bool useFill: false
+        property color fillColor: root.panelColor
+
         radius: 7
-        color: root.panelColor
+        color: useFill ? Qt.rgba(fillColor.r, fillColor.g, fillColor.b, root.hintKeyFillAlpha) : root.panelColor
         border.color: root.panelBorder
         border.width: 1
         opacity: enabled ? 1.0 : 0.35
@@ -75,7 +85,9 @@ Item {
             Loader {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 38
-                sourceComponent: root.dims === 2 ? axis2D : axis3D
+                visible: root.dims !== 2
+                active: root.dims !== 2
+                sourceComponent: axis3D
             }
         }
     }
@@ -148,18 +160,24 @@ Item {
                 KeyCap {
                     label: "Q"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintYColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
                 KeyCap {
                     label: "W"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintZColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
                 KeyCap {
                     label: "E"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintYColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
@@ -167,18 +185,24 @@ Item {
                 KeyCap {
                     label: "A"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintXColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
                 KeyCap {
                     label: "S"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintZColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
                 KeyCap {
                     label: "D"
                     enabled: true
+                    useFill: true
+                    fillColor: root.hintXColor
                     Layout.preferredWidth: 24
                     Layout.preferredHeight: 16
                 }
@@ -339,19 +363,19 @@ Item {
                             id: matX
                             lighting: DefaultMaterial.NoLighting
                             cullMode: Material.NoCulling
-                            diffuseColor: "#cbd5e1"
+                            diffuseColor: Qt.rgba(root.hintXColor.r, root.hintXColor.g, root.hintXColor.b, root.hintAxisAlpha)
                         }
                         DefaultMaterial {
                             id: matY
                             lighting: DefaultMaterial.NoLighting
                             cullMode: Material.NoCulling
-                            diffuseColor: "#a78bfa"
+                            diffuseColor: Qt.rgba(root.hintYColor.r, root.hintYColor.g, root.hintYColor.b, root.hintAxisAlpha)
                         }
                         DefaultMaterial {
                             id: matZ
                             lighting: DefaultMaterial.NoLighting
                             cullMode: Material.NoCulling
-                            diffuseColor: "#6d28d9"
+                            diffuseColor: Qt.rgba(root.hintZColor.r, root.hintZColor.g, root.hintZColor.b, root.hintAxisAlpha)
                         }
 
                         // +X
