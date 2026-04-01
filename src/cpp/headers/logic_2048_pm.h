@@ -248,7 +248,7 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateInter
 
     int *device{nullptr};
 
-    if constexpr (Dimension <= 10)
+    if constexpr (Dimension <= 2)
     {
         move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
     }

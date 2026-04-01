@@ -12,27 +12,27 @@ Item {
         function onSendGameData3D(gameMode, sizeInfo, flatData) {
             // console.log("C++Server Send 3D Game Data to QML... mode=", gameMode, ", size=", sizeInfo)
             if (sizeInfo && sizeInfo.length >= 3) {
-                size = Number(sizeInfo[0]);
-                depth = Number(sizeInfo[2]);
+                root.boardSize = Number(sizeInfo[0]);
+                root.boardDepth = Number(sizeInfo[2]);
             }
             if (flatData !== undefined && flatData !== null) {
-                values = flatData;
+                root.values = flatData;
             }
         }
 
         function onSendMoveTrace3D(gameMode, sizeInfo, flatData, moves, merges, spawn) {
             if (sizeInfo && sizeInfo.length >= 3) {
-                size = Number(sizeInfo[0]);
-                depth = Number(sizeInfo[2]);
+                root.boardSize = Number(sizeInfo[0]);
+                root.boardDepth = Number(sizeInfo[2]);
             }
 
-            pendingValues = flatData;
-            animating = true;
-            mergeValueByTo = ({});
+            root.pendingValues = flatData;
+            root.animating = true;
+            root.mergeValueByTo = ({});
             if (merges) {
                 for (var i = 0; i < merges.length; i++) {
                     var me = merges[i];
-                    mergeValueByTo[String(me.to)] = Number(me.newValue);
+                    root.mergeValueByTo[String(me.to)] = Number(me.newValue);
                 }
             }
 
@@ -46,20 +46,20 @@ Item {
                         value: Number(m.value),
                         merged: Boolean(m.merged),
                         primary: Boolean(m.primary),
-                        mergeNewValue: mergeValueByTo[String(m.to)] !== undefined ? Number(mergeValueByTo[String(m.to)]) : Number(m.value)
+                        mergeNewValue: root.mergeValueByTo[String(m.to)] !== undefined ? Number(root.mergeValueByTo[String(m.to)]) : Number(m.value)
                     });
                 }
             }
 
-            spawnIndex = (spawn && spawn.index !== undefined) ? Number(spawn.index) : -1;
-            spawnValue = (spawn && spawn.value !== undefined) ? Number(spawn.value) : 0;
+            root.spawnIndex = (spawn && spawn.index !== undefined) ? Number(spawn.index) : -1;
+            root.spawnValue = (spawn && spawn.value !== undefined) ? Number(spawn.value) : 0;
             commitTimer.restart();
         }
     }
     focus: true
 
-    property int size: 4
-    property int depth: 4
+    property int boardSize: 4
+    property int boardDepth: 4
     property var values: [] // length = size*size*depth
     property string gameMode: "Static"
     property bool animating: false
@@ -80,20 +80,20 @@ Item {
         interval: root.moveDuration + root.mergePopDelay + root.mergePopDuration
         repeat: false
         onTriggered: {
-            if (pendingValues !== undefined && pendingValues !== null) {
-                values = pendingValues;
+            if (root.pendingValues !== undefined && root.pendingValues !== null) {
+                root.values = root.pendingValues;
             }
-            pendingValues = null;
-            spawnIndex = -1;
-            spawnValue = 0;
-            animating = false;
+            root.pendingValues = null;
+            root.spawnIndex = -1;
+            root.spawnValue = 0;
+            root.animating = false;
         }
     }
 
     signal moveRequested(string direction) // left/right/forward/back/up/down
 
-    readonly property int safeSize: Math.max(1, size)
-    readonly property int safeDepth: Math.max(1, depth)
+    readonly property int safeSize: Math.max(1, boardSize)
+    readonly property int safeDepth: Math.max(1, boardDepth)
     readonly property int cellCount: safeSize * safeSize * safeDepth
 
     function valueAt(i) {
@@ -121,12 +121,10 @@ Item {
     }
 
     Component.onCompleted: {
-        seedValues();
+        // Main.qml will call seedValues() after Loader.Ready.
+        // Avoid triggering an extra backend reset here.
         forceActiveFocus();
     }
-
-    onSizeChanged: seedValues()
-    onDepthChanged: seedValues()
 
     Keys.onPressed: function (event) {
         switch (event.key) {
@@ -333,13 +331,13 @@ Item {
                     // 坐标轴提示：放在棋盘侧边，随视角(相机轨道)一起呈现旋转效果
                     Node {
                         id: axisHint
-                        position: Qt.vector3d(boardHalfX + step * 1.2, -boardHalfY - step * 1.2, -boardHalfZ - step * 1.2)
+                        position: Qt.vector3d(sceneRoot.boardHalfX + sceneRoot.step * 1.2, -sceneRoot.boardHalfY - sceneRoot.step * 1.2, -sceneRoot.boardHalfZ - sceneRoot.step * 1.2)
                         visible: true
 
-                        readonly property real axisLen: step * 0.9
-                        readonly property real shaftR: Math.max(0.6, step * 0.04)
-                        readonly property real headLen: step * 0.22
-                        readonly property real headR: Math.max(1.0, step * 0.07)
+                        readonly property real axisLen: sceneRoot.step * 0.9
+                        readonly property real shaftR: Math.max(0.6, sceneRoot.step * 0.04)
+                        readonly property real headLen: sceneRoot.step * 0.22
+                        readonly property real headR: Math.max(1.0, sceneRoot.step * 0.07)
 
                         DefaultMaterial {
                             id: axisMat
@@ -358,24 +356,25 @@ Item {
 
                         Node {
                             id: axisX
-                            eulerRotation: Qt.vector3d(0, 0, -90)
                             Model {
                                 source: "#Cylinder"
-                                position: Qt.vector3d(axisLen * 0.45, 0, 0)
-                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                eulerRotation: Qt.vector3d(0, 0, -90)
+                                position: Qt.vector3d(axisHint.axisLen * 0.45, 0, 0)
+                                scale: Qt.vector3d(axisHint.shaftR / 50.0, axisHint.axisLen / 100.0, axisHint.shaftR / 50.0)
                                 materials: [axisMat]
                             }
                             Model {
                                 source: "#Cone"
-                                position: Qt.vector3d(axisLen + headLen * 0.15, 0, 0)
-                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                eulerRotation: Qt.vector3d(0, 0, -90)
+                                position: Qt.vector3d(axisHint.axisLen + axisHint.headLen * 0.15, 0, 0)
+                                scale: Qt.vector3d(axisHint.headR / 50.0, axisHint.headLen / 100.0, axisHint.headR / 50.0)
                                 materials: [axisMat]
                             }
                             Node {
                                 eulerRotation: camera.eulerRotation
                                 Model {
                                     source: "#Rectangle"
-                                    position: Qt.vector3d(axisLen + headLen * 0.55, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    position: Qt.vector3d(axisHint.axisLen + axisHint.headLen * 0.55, 0, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
                                     scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
                                     materials: [
                                         DefaultMaterial {
@@ -412,21 +411,21 @@ Item {
                             id: axisY
                             Model {
                                 source: "#Cylinder"
-                                position: Qt.vector3d(0, axisLen * 0.45, 0)
-                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                position: Qt.vector3d(0, axisHint.axisLen * 0.45, 0)
+                                scale: Qt.vector3d(axisHint.shaftR / 50.0, axisHint.axisLen / 100.0, axisHint.shaftR / 50.0)
                                 materials: [axisMat]
                             }
                             Model {
                                 source: "#Cone"
-                                position: Qt.vector3d(0, axisLen + headLen * 0.15, 0)
-                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                position: Qt.vector3d(0, axisHint.axisLen + axisHint.headLen * 0.15, 0)
+                                scale: Qt.vector3d(axisHint.headR / 50.0, axisHint.headLen / 100.0, axisHint.headR / 50.0)
                                 materials: [axisMat]
                             }
                             Node {
                                 eulerRotation: camera.eulerRotation
                                 Model {
                                     source: "#Rectangle"
-                                    position: Qt.vector3d(0, axisLen + headLen * 0.55, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    position: Qt.vector3d(0, axisHint.axisLen + axisHint.headLen * 0.55, sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
                                     scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
                                     materials: [
                                         DefaultMaterial {
@@ -463,21 +462,23 @@ Item {
                             id: axisZ
                             Model {
                                 source: "#Cylinder"
-                                position: Qt.vector3d(0, 0, axisLen * 0.45)
-                                scale: Qt.vector3d(shaftR / 50.0, axisLen / 100.0, shaftR / 50.0)
+                                eulerRotation: Qt.vector3d(90, 0, 0)
+                                position: Qt.vector3d(0, 0, axisHint.axisLen * 0.45)
+                                scale: Qt.vector3d(axisHint.shaftR / 50.0, axisHint.axisLen / 100.0, axisHint.shaftR / 50.0)
                                 materials: [axisMatZ]
                             }
                             Model {
                                 source: "#Cone"
-                                position: Qt.vector3d(0, 0, axisLen + headLen * 0.15)
-                                scale: Qt.vector3d(headR / 50.0, headLen / 100.0, headR / 50.0)
+                                eulerRotation: Qt.vector3d(90, 0, 0)
+                                position: Qt.vector3d(0, 0, axisHint.axisLen + axisHint.headLen * 0.15)
+                                scale: Qt.vector3d(axisHint.headR / 50.0, axisHint.headLen / 100.0, axisHint.headR / 50.0)
                                 materials: [axisMatZ]
                             }
                             Node {
                                 eulerRotation: camera.eulerRotation
                                 Model {
                                     source: "#Rectangle"
-                                    position: Qt.vector3d(0, 0, axisLen + headLen * 0.55 + sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
+                                    position: Qt.vector3d(0, 0, axisHint.axisLen + axisHint.headLen * 0.55 + sceneRoot.cubeEdge / 2.0 + sceneRoot.labelEpsilon)
                                     scale: Qt.vector3d(sceneRoot.labelScale * 0.55, sceneRoot.labelScale * 0.55, 1)
                                     materials: [
                                         DefaultMaterial {
@@ -649,22 +650,21 @@ Item {
                                     easing.type: Easing.InOutQuad
                                 }
                                 SequentialAnimation {
-                                    running: root.animating && isMerged && isPrimary
                                     PauseAnimation {
-                                        duration: root.moveDuration + root.mergePopDelay
+                                        duration: (isMerged && isPrimary) ? (root.moveDuration + root.mergePopDelay) : 0
                                     }
                                     NumberAnimation {
                                         target: tileNode
                                         property: "tileScale"
-                                        to: sceneRoot.cubeScale * 1.18
-                                        duration: root.mergePopDuration / 2
+                                        to: (isMerged && isPrimary) ? (sceneRoot.cubeScale * 1.18) : sceneRoot.cubeScale
+                                        duration: (isMerged && isPrimary) ? (root.mergePopDuration / 2) : 0
                                         easing.type: Easing.OutQuad
                                     }
                                     NumberAnimation {
                                         target: tileNode
                                         property: "tileScale"
                                         to: sceneRoot.cubeScale
-                                        duration: root.mergePopDuration / 2
+                                        duration: (isMerged && isPrimary) ? (root.mergePopDuration / 2) : 0
                                         easing.type: Easing.InQuad
                                     }
                                 }
@@ -680,7 +680,7 @@ Item {
                         position: sceneRoot.idxToPos(root.spawnIndex)
                         Model {
                             source: "#Cube"
-                            scale: Qt.vector3d(sceneRoot.cubeScale * spawnScale, sceneRoot.cubeScale * spawnScale, sceneRoot.cubeScale * spawnScale)
+                            scale: Qt.vector3d(sceneRoot.cubeScale * spawnNode.spawnScale, sceneRoot.cubeScale * spawnNode.spawnScale, sceneRoot.cubeScale * spawnNode.spawnScale)
                             materials: [filledMat]
                         }
                         Node {

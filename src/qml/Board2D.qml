@@ -508,7 +508,7 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: value > 0 ? value : ""
+                            text: spawnPop.value > 0 ? spawnPop.value : ""
                             font.pixelSize: Math.max(12, Math.floor(width * 0.34))
                             font.weight: Font.DemiBold
                             color: "#e5e7eb"
