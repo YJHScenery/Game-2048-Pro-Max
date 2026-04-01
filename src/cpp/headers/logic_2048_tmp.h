@@ -27,7 +27,9 @@
  * @details 使用C++模板元编程实现，可以适配多维度多形状。
  * @param Dimension 2048的维度
  * @param DimensionSize... 各维度的长度
- * @note 此为 C++模板元编程版本，后期将要引入非模板版本。
+ * @note 此为 C++模板元编程版本，后期将要引入非模板版本
+  * (详见 @file logic_2048_dynamic.h @class Logic2048Dynamic )
+  * 以适应运行时自定义尺寸
  */
 enum class MoveDirection : char
 {

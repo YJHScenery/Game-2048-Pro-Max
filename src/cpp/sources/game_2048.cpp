@@ -11,9 +11,9 @@ Game2048::Game2048(QObject *parent) : QObject(parent)
     m_GameBoard4x4x4.resetAndSeed(2);
 }
 
-int Game2048::parse2DSize(const QVariantList &sizeInfo) const
+int Game2048::parse2DSize(const QVariantList &sizeInfo)
 {
-    if (sizeInfo.size() >= 1)
+    if (!sizeInfo.empty())
     {
         const int s = sizeInfo.at(0).toInt();
         if (s == 4 || s == 6 || s == 8)
@@ -155,9 +155,9 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
     emit sendMoveTrace2D(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat, moves, merges, spawn);
 }
 
-int Game2048::parse3DSize(const QVariantList &sizeInfo) const
+int Game2048::parse3DSize(const QVariantList &sizeInfo)
 {
-    if (sizeInfo.size() >= 1)
+    if (!sizeInfo.empty())
     {
         const int s = sizeInfo.at(0).toInt();
         if (s == 4 || s == 6 || s == 8)

@@ -84,13 +84,13 @@ signals:
                          const QVariantMap &spawn);
 
 private:
-    int parse2DSize(const QVariantList &sizeInfo) const;
+    [[nodiscard]] static int parse2DSize(const QVariantList &sizeInfo);
     void emit2D(const QString &gameMode, int size);
     void reset2D(int size);
     void operate2D(int size, int dim, MoveDirection dir);
     void operate2DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
-    int parse3DSize(const QVariantList &sizeInfo) const;
+    [[nodiscard]] static int parse3DSize(const QVariantList &sizeInfo);
     void emit3D(const QString &gameMode, int size);
     void reset3D(int size);
     void operate3D(int size, int dim, MoveDirection dir);
