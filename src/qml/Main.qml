@@ -479,6 +479,14 @@ ApplicationWindow {
                                                 }
                                             }
                                         }
+
+                                        KeyHintWidget {
+                                            Layout.preferredWidth: 240
+                                            Layout.alignment: Qt.AlignVCenter
+                                            visible: !root.isCustomMode && root.selectedMode
+                                            dims: root.selectedMode ? root.selectedMode.dims : 2
+                                            sourceCamera: (root.selectedMode && root.selectedMode.dims === 3 && boardLoader.item && boardLoader.item.viewCamera) ? boardLoader.item.viewCamera : null
+                                        }
                                     }
                                 }
                             }

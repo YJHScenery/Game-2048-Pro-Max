@@ -3,5 +3,6 @@
 		<file>Main.qml</file>
 		<file>Board2D.qml</file>
 		<file>Board3D.qml</file>
+		<file>KeyHintWidget.qml</file>
 	</qresource>
 </RCC>
