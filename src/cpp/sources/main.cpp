@@ -8,6 +8,7 @@
 
 #include "logic_2048_pm.h"
 #include "game_2048.h"
+#include <QIcon>
 
 int runBenchmarks();
 
@@ -20,6 +21,8 @@ int main(int argc, char* argv[])
 
     // 创建 QApplication 资源
     const QGuiApplication app(argc, argv);
+
+    QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
 
     // 创建 Game 对象
     Game2048 game2048{nullptr};
