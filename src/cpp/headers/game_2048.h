@@ -75,7 +75,7 @@ signals:
 
     // ---- 3D signal (avoid name clash with 2D) ----
     void sendGameData3D(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
-
+ 
     // 3D move trace for animation (方案1)
     void sendMoveTrace3D(const QString &gameMode,
                          const QVariantList &sizeInfo,
