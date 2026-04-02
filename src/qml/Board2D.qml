@@ -8,8 +8,9 @@ Item {
     focus: true
 
     Connections {
-        target: game2048
+        target: game2048 // C++ 端游戏对象
 
+        // C++ 端信号：void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
         function onSendGameData(gameMode, sizeInfo, flatData) {
             if (flatData === undefined || flatData === null)
                 return;
@@ -143,8 +144,8 @@ Item {
     }
 
     function seedValues() {
-        if (game2048 && game2048.on_ResetGame_emitted) {
-            game2048.on_ResetGame_emitted(gameMode, [rows, columns]);
+        if (game2048 && game2048.resetGame_emitted) {
+            game2048.resetGame_emitted(gameMode, [rows, columns]);
             return;
         }
         // fallback: keep a deterministic local seed if C++ object isn't available
@@ -175,29 +176,29 @@ Item {
         case Qt.Key_Up:
         case Qt.Key_W:
             moveRequested("up");
-            if (game2048 && game2048.on_Up_operated)
-                game2048.on_Up_operated(gameMode, [rows, columns]);
+            if (game2048 && game2048.up_operated)
+                game2048.up_operated(gameMode, [rows, columns]);
             event.accepted = true;
             break;
         case Qt.Key_Down:
         case Qt.Key_S:
             moveRequested("down");
-            if (game2048 && game2048.on_Down_operated)
-                game2048.on_Down_operated(gameMode, [rows, columns]);
+            if (game2048 && game2048.down_operated)
+                game2048.down_operated(gameMode, [rows, columns]);
             event.accepted = true;
             break;
         case Qt.Key_Left:
         case Qt.Key_A:
             moveRequested("left");
-            if (game2048 && game2048.on_Left_operated)
-                game2048.on_Left_operated(gameMode, [rows, columns]);
+            if (game2048 && game2048.left_operated)
+                game2048.left_operated(gameMode, [rows, columns]);
             event.accepted = true;
             break;
         case Qt.Key_Right:
         case Qt.Key_D:
             moveRequested("right");
-            if (game2048 && game2048.on_Right_operated)
-                game2048.on_Right_operated(gameMode, [rows, columns]);
+            if (game2048 && game2048.right_operated)
+                game2048.right_operated(gameMode, [rows, columns]);
             event.accepted = true;
             break;
         default:

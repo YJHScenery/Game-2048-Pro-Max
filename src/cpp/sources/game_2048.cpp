@@ -299,90 +299,90 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
     emit sendMoveTrace3D(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat, moves, merges, spawn);
 }
 
-void Game2048::on_ResetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::resetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
     reset2D(size);
     emit2D(gameMode, size);
 }
 
-void Game2048::on_Up_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::up_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
     operate2DAndEmitTrace(gameMode, size, 0, MoveDirection::Negative);
 }
 
-void Game2048::on_Down_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::down_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
     operate2DAndEmitTrace(gameMode, size, 0, MoveDirection::Positive);
 }
 
-void Game2048::on_Left_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::left_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
     operate2DAndEmitTrace(gameMode, size, 1, MoveDirection::Negative);
 }
 
-void Game2048::on_Right_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::right_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse2DSize(sizeInfo);
     operate2DAndEmitTrace(gameMode, size, 1, MoveDirection::Positive);
 }
 
-void Game2048::on_Forward_operated(const QString &gameMode, const QVariantList &sizeInfo)
-{
-    const int size = parse2DSize(sizeInfo);
-    emit2D(gameMode, size);
-}
+// void Game2048::on_Forward_operated(const QString &gameMode, const QVariantList &sizeInfo)
+// {
+//     const int size = parse2DSize(sizeInfo);
+//     emit2D(gameMode, size);
+// }
+//
+// void Game2048::on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo)
+// {
+//     const int size = parse2DSize(sizeInfo);
+//     emit2D(gameMode, size);
+// }
 
-void Game2048::on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo)
-{
-    const int size = parse2DSize(sizeInfo);
-    emit2D(gameMode, size);
-}
-
-void Game2048::on_ResetGame3D_emitted(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::resetGame3D_emitted(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     reset3D(size);
     emit3D(gameMode, size);
 }
 
-void Game2048::on_Left3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::left3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     // x axis (fastest-changing) is dim=2
     operate3DAndEmitTrace(gameMode, size, 2, MoveDirection::Negative);
 }
 
-void Game2048::on_Right3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::right3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     operate3DAndEmitTrace(gameMode, size, 2, MoveDirection::Positive);
 }
 
-void Game2048::on_Forward3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::forward3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     // z axis (slowest-changing) is dim=0
     operate3DAndEmitTrace(gameMode, size, 0, MoveDirection::Negative);
 }
 
-void Game2048::on_Back3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::back3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     operate3DAndEmitTrace(gameMode, size, 0, MoveDirection::Positive);
 }
 
-void Game2048::on_Down3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::down3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     // y axis is dim=1
     operate3DAndEmitTrace(gameMode, size, 1, MoveDirection::Negative);
 }
 
-void Game2048::on_Up3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+void Game2048::up3D_operated(const QString &gameMode, const QVariantList &sizeInfo)
 {
     const int size = parse3DSize(sizeInfo);
     operate3DAndEmitTrace(gameMode, size, 1, MoveDirection::Positive);

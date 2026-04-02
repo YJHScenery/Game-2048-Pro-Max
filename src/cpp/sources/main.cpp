@@ -14,6 +14,9 @@ int runBenchmarks();
 
 int main(int argc, char* argv[])
 {
+    void getGPUInformation();
+    getGPUInformation();
+
     if (argc >= 2 && std::string(argv[1]) == "--bench") {
 
         return runBenchmarks();

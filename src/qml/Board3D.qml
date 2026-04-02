@@ -109,8 +109,8 @@ Item {
     }
 
     function seedValues() {
-        if (game2048 && game2048.on_ResetGame3D_emitted) {
-            game2048.on_ResetGame3D_emitted(gameMode, [safeSize, safeSize, safeDepth]);
+        if (game2048 && game2048.resetGame3D_emitted) {
+            game2048.resetGame3D_emitted(gameMode, [safeSize, safeSize, safeDepth]);
             return;
         }
         // fallback: local deterministic seed
@@ -136,41 +136,41 @@ Item {
         case Qt.Key_Left:
         case Qt.Key_A:
             moveRequested("left");
-            if (game2048 && game2048.on_Left3D_operated)
-                game2048.on_Left3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.left3D_operated)
+                game2048.left3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         case Qt.Key_Right:
         case Qt.Key_D:
             moveRequested("right");
-            if (game2048 && game2048.on_Right3D_operated)
-                game2048.on_Right3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.right3D_operated)
+                game2048.right3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         case Qt.Key_Up:
         case Qt.Key_W:
             moveRequested("forward");
-            if (game2048 && game2048.on_Forward3D_operated)
-                game2048.on_Forward3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.forward3D_operated)
+                game2048.forward3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         case Qt.Key_Down:
         case Qt.Key_S:
             moveRequested("back");
-            if (game2048 && game2048.on_Back3D_operated)
-                game2048.on_Back3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.back3D_operated)
+                game2048.back3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         case Qt.Key_Q:
             moveRequested("down");
-            if (game2048 && game2048.on_Down3D_operated)
-                game2048.on_Down3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.down3D_operated)
+                game2048.down3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         case Qt.Key_E:
             moveRequested("up");
-            if (game2048 && game2048.on_Up3D_operated)
-                game2048.on_Up3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
+            if (game2048 && game2048.up3D_operated)
+                game2048.up3D_operated(gameMode, [safeSize, safeSize, safeDepth]);
             event.accepted = true;
             break;
         default:

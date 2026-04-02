@@ -31,13 +31,22 @@
   * (详见 @file logic_2048_dynamic.h @class Logic2048Dynamic )
   * 以适应运行时自定义尺寸
  */
-enum class MoveDirection : char
+enum class MoveDirection : std::int8_t
 {
     Negative = -1, // 沿此维度下索引减小方向
     Positive = 1, // 沿此维度下索引增大方向
 };
 
-template <typename MetaType = size_t, typename SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
+//! @brief 用于强制指定计算平台，便于进行性能测试。
+enum Architecture: std::uint64_t
+{
+    ArchDynamic = 0ull,
+    ArchCPU = 0xFull,
+    ArchCUDA = 0x000000F0ull,
+    ArchCANN = 0x00000F00ull
+};
+
+template <std::uint64_t Arch,  typename MetaType = size_t, typename SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
     requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
 class Logic2048_tm
 {
@@ -127,6 +136,7 @@ public:
     void outputData();
 
     [[nodiscard]] data_mesh_type_ getData() { return m_data; }
+
     [[nodiscard]] const data_mesh_type_& getDataRef() const { return m_data; }
 
     constexpr static size_mesh_type_ getSizeArray() { return sizes_; }
@@ -138,6 +148,8 @@ private:
     bool operateInternal(size_type_ dim, MoveDirection dir);
     bool spawnRandomTile();
     bool spawnRandomTile(SpawnTrace& out);
+
+    //! 随机数生成，90% 2，10% 4
     meta_type_ sampleNewTileValue();
 
     /**
@@ -154,10 +166,13 @@ private:
      * @return 添加成功后返回 true，否则返回 false
      */
     template <template <typename Val_T, typename...> typename Container>
+
     bool setRandomLocationValue(size_t numCount, const Container<meta_type_>& presetValues);
 
     constexpr static size_mesh_type_ sizes_{DimensionSize...};
+
     constexpr static size_type_ total_elems_{(DimensionSize * ...)};
+
     constexpr static std_size_mesh_type_ strides_{buildStrides()};
 
     data_mesh_type_ m_data{sizes_};
@@ -165,12 +180,12 @@ private:
     std::mt19937_64 m_rng{std::random_device{}()};
 };
 
-#define CURRENT_TEMPLATE_DEFINITION template <typename MetaType, typename SizeType, SizeType Dimension, SizeType... DimensionSize> \
+#define CURRENT_TEMPLATE_DEFINITION template <std::uint64_t Arch, typename MetaType, typename SizeType, SizeType Dimension, SizeType... DimensionSize> \
     requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
 
 CURRENT_TEMPLATE_DEFINITION
 constexpr auto Logic2048_tm<
-    MetaType, SizeType, Dimension, DimensionSize...>::buildStrides() -> std_size_mesh_type_
+    Arch, MetaType, SizeType, Dimension, DimensionSize...>::buildStrides() -> std_size_mesh_type_
 {
     {
         std_size_mesh_type_ strides{};
@@ -183,13 +198,13 @@ constexpr auto Logic2048_tm<
 }
 
 CURRENT_TEMPLATE_DEFINITION
-void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operate(size_type_ dim, const MoveDirection dir)
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operate(size_type_ dim, const MoveDirection dir)
 {
     std::ignore = operateInternal(dim, dir);
 }
 
 CURRENT_TEMPLATE_DEFINITION
-bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateInternal(
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateInternal(
     size_type_ dim, const MoveDirection dir)
 {
     if (dim >= Dimension)
@@ -250,15 +265,26 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateInter
 
     const std::vector<long long> before = buf;
 
-    if constexpr (Dimension <= 2) {
+    if constexpr (Arch == ArchDynamic) {
+        if constexpr (Dimension <= 3) {
+            move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
+                           static_cast<std::size_t>(line_len));
+        }
+        else {
+            int* device{nullptr};
+            move_lines_gpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
+                           static_cast<std::size_t>(line_len), device);
+        }
+    } else if constexpr( Arch == ArchCPU) {
         move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                       static_cast<std::size_t>(line_len));
-    }
-    else {
+                           static_cast<std::size_t>(line_len));
+    } else if constexpr (Arch == ArchCUDA) {
         int* device{nullptr};
         move_lines_gpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
                        static_cast<std::size_t>(line_len), device);
     }
+
+
 
     const bool changed{buf != before};
 
@@ -269,7 +295,7 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateInter
 }
 
 CURRENT_TEMPLATE_DEFINITION
-void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::resetAndSeed(const std::size_t initialTileCount)
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::resetAndSeed(const std::size_t initialTileCount)
 {
     m_data.setZero();
     for (std::size_t i = 0; i < initialTileCount; ++i)
@@ -277,7 +303,7 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::resetAndSeed
 }
 
 CURRENT_TEMPLATE_DEFINITION
-bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawn(
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawn(
     size_type_ dim, const MoveDirection dir)
 {
     const bool changed = operateInternal(dim, dir);
@@ -287,7 +313,7 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSp
 }
 
 CURRENT_TEMPLATE_DEFINITION
-auto Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawnTrace(
+auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawnTrace(
     size_type_ dim, const MoveDirection dir) -> MoveTrace
 {
     MoveTrace trace;
@@ -442,14 +468,14 @@ auto Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::operateAndSp
 }
 
 CURRENT_TEMPLATE_DEFINITION
-auto Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::flatData() const -> std::vector<meta_type_>
+auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::flatData() const -> std::vector<meta_type_>
 {
     const meta_type_* raw = m_data.data();
     return std::vector<meta_type_>(raw, raw + total_elems_);
 }
 
 CURRENT_TEMPLATE_DEFINITION
-auto Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::sampleNewTileValue() -> meta_type_
+auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::sampleNewTileValue() -> meta_type_
 {
     // 90% -> 2, 10% -> 4
     std::uniform_int_distribution dist(0, 9);
@@ -457,7 +483,7 @@ auto Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::sampleNewTil
 }
 
 CURRENT_TEMPLATE_DEFINITION
-bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile()
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile()
 {
     meta_type_* raw = m_data.data();
     std::vector<size_type_> empties;
@@ -476,7 +502,7 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomT
 }
 
 CURRENT_TEMPLATE_DEFINITION
-bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace& out)
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace& out)
 {
     meta_type_* raw = m_data.data();
     std::vector<size_type_> empties;
@@ -499,14 +525,14 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomT
 }
 
 CURRENT_TEMPLATE_DEFINITION
-void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::outputData()
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::outputData()
 {
     printTensor<meta_type_, Dimension>(m_data, 0);
 }
 
 CURRENT_TEMPLATE_DEFINITION
 template <typename T, size_t NDims>
-void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::printTensor(
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::printTensor(
     const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor,
     int indent)
 {
@@ -527,7 +553,7 @@ void Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::printTensor(
 
 CURRENT_TEMPLATE_DEFINITION
 template <template <typename Val_T, typename...> typename Container>
-bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::setRandomLocationValue(
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRandomLocationValue(
     size_t numCount, const Container<meta_type_>& presetValues)
 {
     if (numCount == 0)
@@ -565,4 +591,8 @@ bool Logic2048_tm<MetaType, SizeType, Dimension, DimensionSize...>::setRandomLoc
     return true;
 }
 
+
+
+
+#undef CURRENT_TEMPLATE_DEFINITION
 #endif // GAME_2048_QUICK_LOGIC2048BASE_H

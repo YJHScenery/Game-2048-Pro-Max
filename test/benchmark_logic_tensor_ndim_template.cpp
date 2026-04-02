@@ -22,7 +22,7 @@ namespace
         static_assert(sizeof...(Dims) == NDim, "NDim must equal number of Dims");
         static_assert(((Dims != 0) && ...), "All Dims must be non-zero");
 
-        using Logic = Logic2048_tm<std::size_t, std::size_t, static_cast<std::size_t>(NDim), static_cast<std::size_t>(Dims)...>;
+        using Logic = Logic2048_tm<Architecture::ArchDynamic, std::size_t, std::size_t, static_cast<std::size_t>(NDim), static_cast<std::size_t>(Dims)...>;
 
         constexpr std::size_t kTotalElems = (static_cast<std::size_t>(Dims) * ...);
         constexpr std::size_t kRequestedNonZeros = 128;

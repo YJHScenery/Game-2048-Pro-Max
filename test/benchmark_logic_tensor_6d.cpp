@@ -13,7 +13,7 @@
 
 void benchmark_logic2048_tensor_6d_operate()
 {
-    using Logic = Logic2048_tm<std::size_t, std::size_t, 6, 8, 8, 8, 8, 8, 8>;
+    using Logic = Logic2048_tm<Architecture::ArchDynamic, std::size_t, std::size_t, 6, 8, 8, 8, 8, 8, 8>;
 
     // Build an 8^6 sparse tensor with a few random {2,4,8} values.
     constexpr std::size_t kTotalElems = 8ull * 8ull * 8ull * 8ull * 8ull * 8ull; // 262144
