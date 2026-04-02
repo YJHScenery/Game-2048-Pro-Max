@@ -25,9 +25,7 @@ void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_c
     }
     else if constexpr (std::is_integral_v<meta_type_> && std::is_unsigned_v<meta_type_>)
     {
-
         cuda_move_lines_ull(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
-
     }
     else if constexpr (std::is_floating_point_v<meta_type_> && std::is_signed_v<meta_type_>)
     {
@@ -36,7 +34,6 @@ void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_c
     else
     {
         cuda_move_lines_uld(h_data, h_lines, static_cast<std::size_t>(line_count), static_cast<std::size_t>(line_len));
-
     }
 }
 

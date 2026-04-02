@@ -60,14 +60,17 @@ set(TEST_SOURCE_FILES
 )
 
 
-set(QT_PACKAGES_LIST
-        Core Gui Widgets Quick Qml
-		Quick3D
+set(QT_MODULES_LIST
+        Core Gui Widgets Quick Qml Quick3D
 )
 
+set(CUDA_MODULES_LIST
+        CUDA::cudart
+        CUDA::cuda_driver
+)
 
 find_package(Qt6 COMPONENTS
-        ${QT_PACKAGES_LIST}
+        ${QT_MODULES_LIST}
         REQUIRED)
 
 add_executable(${PROJECT_NAME}
@@ -78,14 +81,13 @@ add_executable(${PROJECT_NAME}
         ${RESOURCE_FILES}
         )
 
-foreach (QT_LIB ${QT_PACKAGES_LIST})
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-            Qt::${QT_LIB}
-    )
-endforeach ()
+list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WITH_PREFIX)
 
-# ===================== 6. 链接CUDA核心库 =====================
-target_link_libraries(${PROJECT_NAME} PRIVATE CUDA::cudart CUDA::cuda_driver)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${QT_MODULES_LIST_WITH_PREFIX}
+        ${CUDA_MODULES_LIST} # 链接CUDA核心库
+)
+
 
 if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(DEBUG_SUFFIX)
@@ -108,7 +110,7 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
                 "${QT_INSTALL_PATH}/plugins/platforms/qwindows${DEBUG_SUFFIX}.dll"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>/plugins/platforms/")
     endif ()
-    foreach (QT_LIB ${QT_PACKAGES_LIST})
+    foreach (QT_LIB ${QT_MODULES_LIST})
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy
                 "${QT_INSTALL_PATH}/bin/Qt6${QT_LIB}${DEBUG_SUFFIX}.dll"

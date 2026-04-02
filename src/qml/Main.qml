@@ -99,10 +99,20 @@ ApplicationWindow {
             return;
         if (mode.dims === 2) {
 
+            // 2D/3D 切换瞬间 boardLoader.item 可能还是旧组件（例如 Board3D）。
+            // 避免给不存在的属性赋值，等待 Loader.onLoaded 再同步。
+            if (boardLoader.item.rows === undefined || boardLoader.item.columns === undefined)
+                return;
+
             // ListElement 内的数据属性 .size（以及后续的 .depth）
             boardLoader.item.rows = mode.size;
             boardLoader.item.columns = mode.size;
         } else {
+
+            // 同理：切换到 3D 时，item 可能仍是 Board2D。
+            if (boardLoader.item.boardSize === undefined || boardLoader.item.boardDepth === undefined)
+                return;
+
             boardLoader.item.boardSize = mode.size;
             boardLoader.item.boardDepth = mode.depth;
         }
@@ -116,8 +126,10 @@ ApplicationWindow {
             boardLoader.item.forceActiveFocus();
     }
 
-    // 此为自定义 property int selectedIndex 发生改变的信号。QML 中使用名字解析来创建信号。
-    onSelectedIndexChanged: Qt.callLater(root.syncBoardFromMode)
+    // selectedIndex 变化时：如果棋盘已就绪（例如 2D 4x4 -> 2D 6x6 不会重载组件），立即同步；
+    // 如果会触发 Loader 重载（例如 2D -> 3D），此时 boardLoader.item 为空，本函数会安全 return，
+    // 由 Loader.onLoaded 再触发一次同步即可，避免 callLater 带来的重复 reset。
+    onSelectedIndexChanged: root.syncBoardFromMode()
 
     // 定义渐变色。
     // 此 Rectangle 使用 anchors.fill，填充整个父容器。
@@ -560,10 +572,6 @@ ApplicationWindow {
                                         return mode.dims === 2 ? "qrc:/qml/Board2D.qml" : "qrc:/qml/Board3D.qml";
                                     }
                                     onLoaded: Qt.callLater(root.syncBoardFromMode)
-                                    onStatusChanged: {
-                                        if (status === Loader.Ready)
-                                            Qt.callLater(root.syncBoardFromMode);
-                                    }
                                 }
 
                                 // 棋盘加载失败时触发

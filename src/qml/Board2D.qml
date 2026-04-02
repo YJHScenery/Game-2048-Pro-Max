@@ -24,6 +24,15 @@ Item {
             root.values = flatData;
         }
 
+        // C++ 端信号：
+        /*
+            void sendMoveTrace2D(const QString &gameMode,
+                 const QVariantList &sizeInfo,
+                 const QVariantList &flatData,
+                 const QVariantList &moves,
+                 const QVariantList &merges,
+                 const QVariantMap &spawn);
+        */
         function onSendMoveTrace2D(gameMode, sizeInfo, flatData, moves, merges, spawn) {
             if (flatData === undefined || flatData === null)
                 return;
@@ -94,6 +103,7 @@ Item {
     readonly property int safeRows: Math.max(1, rows)
     readonly property int safeColumns: Math.max(1, columns)
 
+    // property: values
     function valueAt(i) {
         if (!values || i < 0 || i >= values.length)
             return 0;
@@ -101,6 +111,7 @@ Item {
         return (v === undefined || v === null) ? 0 : v;
     }
 
+    // 网格布局计算的函数。根据一维的索引 i，计算出该元素在二维网格中的具体坐标 (x, y)。
     function posForIndex(i) {
         var idx = Math.max(0, Math.floor(i));
         var c = idx % safeColumns;
@@ -143,6 +154,7 @@ Item {
         root.spawnInfo = null;
     }
 
+    // Main.qml 调用，初始化棋盘使用
     function seedValues() {
         if (game2048 && game2048.resetGame_emitted) {
             game2048.resetGame_emitted(gameMode, [rows, columns]);
@@ -160,8 +172,7 @@ Item {
     }
 
     Component.onCompleted: {
-        seedValues();
-        forceActiveFocus();
+        // 初始化统一由 Main.qml 负责触发（Loader.Ready 后同步尺寸并 reset）。
     }
 
     onRowsChanged: seedValues()
@@ -296,7 +307,7 @@ Item {
                     spacing: center.spacing
 
                     Repeater {
-                        model: root.cellCount
+                        model: root.cellCount // 通过总单元格数量来循环生成元素
                         delegate: Rectangle {
                             width: center.cellSize
                             height: center.cellSize
@@ -337,7 +348,7 @@ Item {
                                     var v = root.valueAt(index);
                                     return v > 0 ? v : "";
                                 }
-                                font.pixelSize: Math.max(12, Math.floor(width * 0.34))
+                                font.pixelSize: Math.max(24, Math.floor(width * 0.34))
                                 font.weight: Font.DemiBold
                                 color: "#e5e7eb"
                                 opacity: root.isAnimating ? 0 : 1
@@ -349,7 +360,7 @@ Item {
                 Item {
                     id: overlay
                     anchors.fill: parent
-                    z: 10
+                    z: 10 //! @note 自己悬浮在所有其他 UI 元素之上
 
                     Repeater {
                         model: root.activeMoves
@@ -369,7 +380,7 @@ Item {
                             property real fromY: root.posForIndex(fromIndex).y
                             property real toX: root.posForIndex(toIndex).x
                             property real toY: root.posForIndex(toIndex).y
-                            property bool merged: !!modelData.merged
+                            property bool merged: !!modelData.merged // !! 用于显式转 bool 类型
                             property bool primary: (modelData.primary === undefined) ? true : !!modelData.primary
                             property int startValue: Number(modelData.value)
                             property int mergeValue: root.mergeNewValueAt(toIndex)
@@ -413,6 +424,7 @@ Item {
                                 color: "#e5e7eb"
                             }
 
+                            // 并行动画
                             ParallelAnimation {
                                 id: moveAnim
                                 running: false
@@ -441,6 +453,7 @@ Item {
                                 }
                             }
 
+                            // 顺序动画
                             SequentialAnimation {
                                 id: mergeBounce
                                 running: false
