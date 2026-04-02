@@ -82,6 +82,7 @@ public:
      * @brief 执行一次移动；若棋盘发生变化，则在空位随机生成一个新块（2/4）。
      * @return 若移动导致棋盘变化则返回 true，否则返回 false。
      */
+
     bool operateAndSpawn(size_type_ dim, MoveDirection dir);
 
     struct TileMoveTrace
