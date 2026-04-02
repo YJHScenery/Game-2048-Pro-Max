@@ -8,7 +8,9 @@
 
 class Logic2048Dynamic
 {
-
+public:
+    Logic2048Dynamic() = default;
+private:
 };
 
 #endif //GAME_2048_QUICK_LOGIC_2048_DYNAMIC_H
