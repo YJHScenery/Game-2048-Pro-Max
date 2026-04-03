@@ -125,6 +125,52 @@ Item {
         values = arr;
     }
 
+    function modeIndexBySizeDepth(s, d) {
+        var size = Number(s);
+        var depth = Number(d);
+        if (size !== depth)
+            return -1;
+        if (size === 4)
+            return 3;
+        if (size === 6)
+            return 4;
+        if (size === 8)
+            return 5;
+        return -1;
+    }
+
+    function isBoardEmpty(data) {
+        if (!data || data.length <= 0)
+            return true;
+        for (var i = 0; i < data.length; i++) {
+            if (Number(data[i]) > 0)
+                return false;
+        }
+        return true;
+    }
+
+    // forceReset=true: 用户点击“重置”时强制重置。
+    // forceReset=false: 模式切换时优先加载后端已保存数据，仅在空数据时重置。
+    function loadOrReset(forceReset) {
+        if (forceReset === true) {
+            seedValues();
+            return;
+        }
+
+        if (game2048 && game2048.getBoardData_emitted) {
+            var idx = modeIndexBySizeDepth(safeSize, safeDepth);
+            var boardData = idx >= 0 ? game2048.getBoardData_emitted(idx) : [];
+            if (boardData && boardData.length === cellCount) {
+                values = boardData;
+                if (isBoardEmpty(boardData))
+                    seedValues();
+                return;
+            }
+        }
+
+        seedValues();
+    }
+
     Component.onCompleted: {
         // Main.qml will call seedValues() after Loader.Ready.
         // Avoid triggering an extra backend reset here.
@@ -613,16 +659,60 @@ Item {
                 }
             }
 
-            Button {
+            Rectangle {
+                id: resetViewBtn
                 Layout.preferredWidth: 140
-                text: "重置视角"
-                onClicked: {
+                Layout.preferredHeight: 48
+                radius: 14
+                border.width: 1
+                border.color: resetViewBtn.pressed ? "#a78bfa" : (resetViewBtn.hovered ? "#8b5cf6" : "#2a3446")
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.0
+                        color: resetViewBtn.pressed ? "#2a1f47" : (resetViewBtn.hovered ? "#1a2740" : "#0f172a")
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: resetViewBtn.pressed ? "#201635" : (resetViewBtn.hovered ? "#111a2f" : "#0b1220")
+                    }
+                }
+
+                property bool hovered: false
+                property bool pressed: false
+
+                HoverHandler {
+                    onHoveredChanged: resetViewBtn.hovered = hovered
+                }
+
+                TapHandler {
+                    onPressedChanged: resetViewBtn.pressed = pressed
+                    onTapped: {
+                        resetViewBtn.pressed = false;
+                        viewport.yaw = 35;
+                        viewport.pitch = 20;
+                        viewport.distance = 520;
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "重置视角"
+                    font.pixelSize: 13
+                    font.weight: Font.Medium
+                    color: "#e5e7eb"
+                }
+
+                Keys.onReturnPressed: {
                     viewport.yaw = 35;
                     viewport.pitch = 20;
                     viewport.distance = 520;
                 }
-                ControlsMaterial.Material.background: "#0f172a"
-                ControlsMaterial.Material.foreground: "#e5e7eb"
+
+                Keys.onEnterPressed: {
+                    viewport.yaw = 35;
+                    viewport.pitch = 20;
+                    viewport.distance = 520;
+                }
             }
         }
     }

@@ -35,6 +35,7 @@ set(CPP_HEADER_FILES
         src/cpp/headers/game_2048.h
         src/cpp/headers/logic_2048_dynamic.h
         src/cpp/headers/game_data_manager.h
+        src/cpp/headers/hash_tools.h
 )
 
 set(CPP_SOURCE_FILES

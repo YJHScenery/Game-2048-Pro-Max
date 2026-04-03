@@ -1,5 +1,6 @@
 //
 // Created by jehor on 2026/3/29.
+// Ye Jinghao All Rights Reserved
 //
 
 #ifndef GAME_2048_QUICK_LOGIC2048BASE_H
@@ -18,7 +19,7 @@
 #include <utility>
 #include <vector>
 #include <random>
-
+#include "hash_tools.h"
 #include "hpc_interface.h"
 
 /**
@@ -66,7 +67,11 @@ public:
 
     using location_meta_type_ = std::pair<size_mesh_type_, meta_type_>; //! @brief 用于构建稀疏矩阵或定位单一元数据
 
+    using hash_type_ = std::uint64_t;
+
     Logic2048_tm() = default;
+
+    hash_type_ getHash();
 
     explicit Logic2048_tm(data_mesh_type_ data) : m_data(std::move(data))
     {
@@ -307,6 +312,28 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
         raw[i] = static_cast<meta_type_>(buf[i]);
 
     return changed;
+}
+
+CURRENT_TEMPLATE_DEFINITION
+ Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::hash_type_ Logic2048_tm<Arch, MetaType,
+SizeType, Dimension, DimensionSize...>::getHash()
+{
+    std::size_t seed = 0;
+
+    // 1. 混合维度信息（防止不同形状但内存数据巧合相同的张量哈希冲突）
+    // 例如：1x4 和 2x2 如果数据一样，不加维度哈希可能会冲突
+    for (int i = 0; i < m_data.rank(); ++i) {
+        hashCombineBytes(seed, reinterpret_cast<const unsigned char*>(&m_data.dimension(i)), sizeof(int));
+    }
+
+    // 2. 混合数据内容
+    // 直接对内存块进行哈希，效率最高
+    const auto dataPtr = reinterpret_cast<const unsigned char*>(m_data.data());
+    const std::size_t byteSize = m_data.size() * sizeof(typename data_mesh_type_::Scalar);
+
+    hashCombineBytes(seed, dataPtr, byteSize);
+
+    return seed;
 }
 
 CURRENT_TEMPLATE_DEFINITION

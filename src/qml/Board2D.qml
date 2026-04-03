@@ -171,12 +171,52 @@ Item {
         values = arr;
     }
 
-    Component.onCompleted: {
-        // 初始化统一由 Main.qml 负责触发（Loader.Ready 后同步尺寸并 reset）。
+    function modeIndexBySize(s) {
+        var size = Number(s);
+        if (size === 4)
+            return 0;
+        if (size === 6)
+            return 1;
+        if (size === 8)
+            return 2;
+        return -1;
     }
 
-    onRowsChanged: seedValues()
-    onColumnsChanged: seedValues()
+    function isBoardEmpty(data) {
+        if (!data || data.length <= 0)
+            return true;
+        for (var i = 0; i < data.length; i++) {
+            if (Number(data[i]) > 0)
+                return false;
+        }
+        return true;
+    }
+
+    // forceReset=true: 用户点击“重置”时强制重置。
+    // forceReset=false: 模式切换时优先加载后端已保存数据，仅在空数据时重置。
+    function loadOrReset(forceReset) {
+        if (forceReset === true) {
+            seedValues();
+            return;
+        }
+
+        if (game2048 && game2048.getBoardData_emitted) {
+            var idx = modeIndexBySize(rows);
+            var boardData = idx >= 0 ? game2048.getBoardData_emitted(idx) : [];
+            if (boardData && boardData.length === cellCount) {
+                values = boardData;
+                if (isBoardEmpty(boardData))
+                    seedValues();
+                return;
+            }
+        }
+
+        seedValues();
+    }
+
+    Component.onCompleted: {
+        // 初始化统一由 Main.qml 负责触发（Loader.Ready 后同步尺寸并加载/重置）。
+    }
 
     Keys.onPressed: function (event) {
         if (root.isAnimating) {

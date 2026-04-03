@@ -139,8 +139,10 @@ ApplicationWindow {
             boardLoader.item.boardDepth = mode.depth;
         }
 
-        // 安全机制，防止调用 null
-        if (boardLoader.item.seedValues)
+        // 模式切换优先加载存档；仅在无数据时才触发重置。
+        if (boardLoader.item.loadOrReset)
+            boardLoader.item.loadOrReset(false);
+        else if (boardLoader.item.seedValues)
             //! @note seedValues() 函数在 @file Board2D 和 @file Board3D 中被定义。
             boardLoader.item.seedValues();
         if (boardLoader.item.forceActiveFocus)
@@ -156,10 +158,22 @@ ApplicationWindow {
         root.syncBoardFromMode()
 
         if (game2048 && game2048.getScoreInfo_emitted){
-            var info = game2048.getScoreInfo_emitted(root.selectedIndex)
-            root.maxScore = info[0]
-            root.currentScore = info[1]
+            var info = game2048.getScoreInfo_emitted(root.selectedIndex);
+            root.maxScore = info[0];
+            root.currentScore = info[1];
         }
+    }
+
+    Component.onCompleted: {
+        // 首次启动 selectedIndex 不会变化，主动同步一次棋盘与分数。
+        Qt.callLater(function () {
+            root.syncBoardFromMode();
+            if (game2048 && game2048.getScoreInfo_emitted) {
+                var info = game2048.getScoreInfo_emitted(root.selectedIndex);
+                root.maxScore = info[0];
+                root.currentScore = info[1];
+            }
+        });
     }
 
     // 定义渐变色。
@@ -573,6 +587,30 @@ ApplicationWindow {
                                                     }
                                                 }
                                             }
+                                        }
+
+                                        Button {
+                                            Layout.preferredWidth: 96
+                                            Layout.preferredHeight: 34
+                                            text: "重置"
+                                            onClicked: {
+                                                if (boardLoader && boardLoader.item && boardLoader.item.loadOrReset)
+                                                    boardLoader.item.loadOrReset(true);
+
+                                                // 点击按钮后焦点会被按钮夺走，重置后把焦点还给棋盘。
+                                                Qt.callLater(function () {
+                                                    if (boardLoader && boardLoader.item && boardLoader.item.forceActiveFocus)
+                                                        boardLoader.item.forceActiveFocus();
+                                                });
+
+                                                if (game2048 && game2048.getScoreInfo_emitted) {
+                                                    var info = game2048.getScoreInfo_emitted(root.selectedIndex);
+                                                    root.maxScore = info[0];
+                                                    root.currentScore = info[1];
+                                                }
+                                            }
+                                            Material.background: "#0f172a"
+                                            Material.foreground: "#e5e7eb"
                                         }
 
                                         KeyHintWidget {
