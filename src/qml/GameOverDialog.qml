@@ -51,7 +51,14 @@ Popup {
 
         Label {
             Layout.alignment: Qt.AlignHCenter
-            text: "别灰心，再试一次就能破纪录。"
+            text: currentScore === maxScore ? "恭喜，你破记录了！" : "别灰心，再试一次就能破纪录。"
+            color: root.subColor
+            font.pixelSize: 14
+        }
+
+        Label{
+            Layout.alignment: Qt.AlignHCenter
+            text: "点击 “重置” 以重新开始"
             color: root.subColor
             font.pixelSize: 14
         }

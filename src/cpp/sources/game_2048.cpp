@@ -31,7 +31,8 @@ Game2048::Game2048(QObject *parent) : QObject(parent), m_dataManager(GameDataMan
 
     connect(this, &Game2048::updateGameScore, this, &Game2048::gameScore_updated, Qt::QueuedConnection);
 
-    connect(this, &Game2048::gameOver, this, [](){qDebug() << "gameOver";});
+    connect(this, &Game2048::gameOver, this, []()
+            { qDebug() << "gameOver"; });
 }
 
 Game2048::~Game2048()
@@ -75,8 +76,15 @@ void Game2048::loadAllData()
 
 void Game2048::loadAllHash()
 {
-    m_hashList << m_GameBoard4x4.getHash() << m_GameBoard6x6.getHash() << m_GameBoard8x8.getHash();
-    m_hashList << m_GameBoard4x4x4.getHash() << m_GameBoard6x6x6.getHash() << m_GameBoard8x8x8.getHash();
+    if (m_hashList.size() != 6)
+        m_hashList = QList<uint64_t>(6);
+
+    m_hashList[0] = m_GameBoard4x4.getHash();
+    m_hashList[1] = m_GameBoard6x6.getHash();
+    m_hashList[2] = m_GameBoard8x8.getHash();
+    m_hashList[3] = m_GameBoard4x4x4.getHash();
+    m_hashList[4] = m_GameBoard6x6x6.getHash();
+    m_hashList[5] = m_GameBoard8x8x8.getHash();
 }
 
 int Game2048::parse2DSize(const QVariantList &sizeInfo)
@@ -127,11 +135,20 @@ void Game2048::reset2D(const int size, const bool reserveData)
 {
     Q_UNUSED(reserveData)
     if (size == 6)
+    {
         m_GameBoard6x6.resetAndSeed(2);
+        m_hashList[1] = m_GameBoard6x6.getHash();
+    }
     else if (size == 8)
+    {
         m_GameBoard8x8.resetAndSeed(2);
+        m_hashList[2] = m_GameBoard8x8.getHash();
+    }
     else
+    {
         m_GameBoard4x4.resetAndSeed(2);
+        m_hashList[0] = m_GameBoard4x4.getHash();
+    }
 }
 
 // void Game2048::operate2D(const int size, const int dim, const MoveDirection dir)
@@ -201,17 +218,24 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[1] == m_GameBoard6x6.getHash()) {
+        if (m_hashList[1] == m_GameBoard6x6.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard6x6.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[1] = m_GameBoard6x6.getHash();
         }
     }
@@ -226,17 +250,24 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[2] == m_GameBoard8x8.getHash()) {
+        if (m_hashList[2] == m_GameBoard8x8.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard8x8.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[2] = m_GameBoard8x8.getHash();
         }
     }
@@ -251,17 +282,24 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[0] == m_GameBoard4x4.getHash()) {
+        if (m_hashList[0] == m_GameBoard4x4.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard4x4.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[0] = m_GameBoard4x4.getHash();
         }
     }
@@ -316,11 +354,20 @@ void Game2048::emit3D(const QString &gameMode, const int size)
 void Game2048::reset3D(const int size)
 {
     if (size == 6)
+    {
         m_GameBoard6x6x6.resetAndSeed(2);
+        m_hashList[4] = m_GameBoard6x6x6.getHash();
+    }
     else if (size == 8)
+    {
         m_GameBoard8x8x8.resetAndSeed(2);
+        m_hashList[5] = m_GameBoard8x8x8.getHash();
+    }
     else
+    {
         m_GameBoard4x4x4.resetAndSeed(2);
+        m_hashList[3] = m_GameBoard4x4x4.getHash();
+    }
 }
 
 // void Game2048::operate3D(const int size, const int dim, const MoveDirection dir)
@@ -390,17 +437,24 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[4] == m_GameBoard6x6x6.getHash()) {
+        if (m_hashList[4] == m_GameBoard6x6x6.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard6x6x6.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[4] = m_GameBoard6x6x6.getHash();
         }
     }
@@ -415,17 +469,24 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[5] == m_GameBoard8x8x8.getHash()) {
+        if (m_hashList[5] == m_GameBoard8x8x8.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard8x8x8.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[5] = m_GameBoard8x8x8.getHash();
         }
     }
@@ -440,17 +501,24 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
 
         fillCommon(trace);
 
-        if (m_hashList[3] == m_GameBoard4x4x4.getHash()) {
+        if (m_hashList[3] == m_GameBoard4x4x4.getHash())
+        {
             std::vector<EqualPair> equals{m_GameBoard4x4x4.checkOver()};
-            if (equals.empty()) {
+            if (equals.empty())
+            {
                 emit gameOver();
-            }else {
-                for (const auto v : equals) {
+            }
+            else
+            {
+                for (const auto v : equals)
+                {
                     qDebug() << v.dim << " " << v.pos;
                 }
                 qDebug() << "Not over";
             }
-        }else {
+        }
+        else
+        {
             m_hashList[3] = m_GameBoard4x4x4.getHash();
         }
     }

@@ -11,13 +11,11 @@
 #include <utility>
 #include "basic_dependency.h"
 
+template <typename T, typename LineDesc, typename Device>
+void move_lines_gpu(T *h_data, const LineDesc *h_lines, std::size_t line_count, std::size_t line_len, Device *stream = nullptr);
 
 template <typename T, typename LineDesc, typename Device>
-void move_lines_gpu(T* h_data, const LineDesc* h_lines, std::size_t line_count, std::size_t line_len, Device* stream = nullptr);
-
-
-template<typename T, typename LineDesc, typename Device>
-void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_count, const std::size_t line_len, Device* stream)
+void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_count, const std::size_t line_len, Device *stream)
 {
     using meta_type_ = T;
     if constexpr (std::is_integral_v<meta_type_> && std::is_signed_v<meta_type_>)
@@ -39,16 +37,16 @@ void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_c
 }
 
 template <typename T, size_t nDim, size_t... Dimensions>
-std::vector<EqualPair> check_equals_gpu(T* tensor_data)
+std::vector<EqualPair> check_equals_gpu(T *tensor_data)
 {
-    const std::vector<EqualPair> results { find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
-    return std::move(results);
+    const std::vector<EqualPair> results{find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
+    return results;
 }
 
 template <typename T, size_t nDim, size_t... Dimensions>
-bool check_equals_cpu(T* tensor_data)
+bool check_equals_cpu(T *tensor_data)
 {
-    const std::vector<EqualPair> results { find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
+    const std::vector<EqualPair> results{find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
     return results.empty();
 }
-#endif //GAME_2048_QUICK_HPC_INTERFACE_H
+#endif // GAME_2048_QUICK_HPC_INTERFACE_H
