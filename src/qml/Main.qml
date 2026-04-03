@@ -16,8 +16,30 @@ ApplicationWindow {
     Material.accent: Material.DeepPurple
 
     property int selectedIndex: 0
+    property int oldSelectedIndex: 0
+    property int currentScore: 0
+    property int maxScore: 0
+
     readonly property bool isCustomMode: selectedIndex < 0
     readonly property var selectedMode: (!isCustomMode && selectedIndex >= 0 && selectedIndex < modeModel.count) ? modeModel.get(selectedIndex) : null
+
+    Connections{
+        target: game2048
+
+        // C++ 端信号：void sendScoreInfoToQML(QVariantList scoreInfo);
+        function onSendScoreInfoToQML(scoreInfo) {
+            root.maxScore = scoreInfo[0]
+            root.currentScore = scoreInfo[1]
+        }
+    }
+
+    function saveDataWhenSelectedIndexChanged(){
+        if (game2048 && game2048.saveData_emitted){
+            game2048.saveData_emitted(root.oldSelectedIndex)
+        }
+        // console.log("Save Data")
+    }
+
 
     // Model 为 MVC 设计模式中的“M”
     ListModel {
@@ -129,7 +151,16 @@ ApplicationWindow {
     // selectedIndex 变化时：如果棋盘已就绪（例如 2D 4x4 -> 2D 6x6 不会重载组件），立即同步；
     // 如果会触发 Loader 重载（例如 2D -> 3D），此时 boardLoader.item 为空，本函数会安全 return，
     // 由 Loader.onLoaded 再触发一次同步即可，避免 callLater 带来的重复 reset。
-    onSelectedIndexChanged: root.syncBoardFromMode()
+    onSelectedIndexChanged:{
+        saveDataWhenSelectedIndexChanged();
+        root.syncBoardFromMode()
+
+        if (game2048 && game2048.getScoreInfo_emitted){
+            var info = game2048.getScoreInfo_emitted(root.selectedIndex)
+            root.maxScore = info[0]
+            root.currentScore = info[1]
+        }
+    }
 
     // 定义渐变色。
     // 此 Rectangle 使用 anchors.fill，填充整个父容器。
@@ -262,7 +293,11 @@ ApplicationWindow {
 
                         // 检测点击（触摸）事件。
                         TapHandler {
-                            onTapped: root.selectedIndex = index // index: 当前卡片索引
+
+                            onTapped: {
+                                root.oldSelectedIndex = root.selectedIndex;
+                                root.selectedIndex = index
+                            } // index: 当前卡片索引
                         }
 
                         //! @note QML 中强大的动画效果器
@@ -518,7 +553,7 @@ ApplicationWindow {
                                                     Layout.preferredWidth: 100
                                                     Text {
                                                         anchors.centerIn: parent
-                                                        text: "—"
+                                                        text: root.currentScore
                                                         color: "#e5e7eb"
                                                         font.pixelSize: 14
                                                     }
@@ -532,7 +567,7 @@ ApplicationWindow {
                                                     Layout.preferredWidth: 100
                                                     Text {
                                                         anchors.centerIn: parent
-                                                        text: "—"
+                                                        text: root.maxScore
                                                         color: "#e5e7eb"
                                                         font.pixelSize: 14
                                                     }

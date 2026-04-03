@@ -6,6 +6,8 @@
 #define GAME_2048_QUICK_GAME_2048_H
 #include "logic_2048_tmp.h"
 #include "logic_2048_dynamic.h"
+#include "game_data_manager.h"
+
 #include <QObject>
 
 #include <QList>
@@ -13,18 +15,18 @@
 #include <QVariant>
 #include <QVariantMap>
 
-struct GameData
-{
-    QString gameMode;       //! @note Static or Dynamic
-    QList<int> sizeInfo;    //! @note {2, 2} means 2x2 Size; {2, 2, 2} means 2*2*2 Size; etc.
-    QList<size_t> flatData; //! @note Game Board Matrix Data(Flatted), Row Major.
-};
+// struct GameData
+// {
+//     QString gameMode;       //! @note Static or Dynamic
+//     QList<int> sizeInfo;    //! @note {2, 2} means 2x2 Size; {2, 2, 2} means 2*2*2 Size; etc.
+//     QList<size_t> flatData; //! @note Game Board Matrix Data(Flatted), Row Major.
+// };
 
-struct GameMode
-{
-    QString gameMode;
-    QList<int> sizeInfo;
-};
+// struct GameMode
+// {
+//     QString gameMode;
+//     QList<int> sizeInfo;
+// };
 
 class Game2048 : public QObject
 {
@@ -32,6 +34,11 @@ class Game2048 : public QObject
 public:
     explicit Game2048(QObject *parent = nullptr);
 
+    ~Game2048() override;
+
+    void saveAllData();
+
+    void loadAllData();
 public slots:
     void resetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo);
 
@@ -62,7 +69,15 @@ public slots:
 
     void up3D_operated(const QString &gameMode, const QVariantList &sizeInfo);
 
+    void gameScore_updated(const QVariantList &sizeInfo, std::uint64_t addScore);
+
+    void saveData_emitted(int innerIndex);
+
+    QVariantList getScoreInfo_emitted(int innerIndex);
+
+    QVariantList getBoardData_emitted(int innerIndex) const;
 signals:
+
     void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
     // 2D move trace for animation
@@ -72,6 +87,10 @@ signals:
                          const QVariantList &moves,
                          const QVariantList &merges,
                          const QVariantMap &spawn);
+
+    void updateGameScore(const QVariantList &sizeInfo, std::uint64_t addScore);
+
+    void sendScoreInfoToQML(QVariantList scoreInfo);
 
     // ---- 3D signal (avoid name clash with 2D) ----
     void sendGameData3D(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
@@ -85,19 +104,21 @@ signals:
                          const QVariantList &merges,
                          const QVariantMap &spawn);
 
+
 private:
     [[nodiscard]] static int parse2DSize(const QVariantList &sizeInfo);
     void emit2D(const QString &gameMode, int size);
-    void reset2D(int size);
-    void operate2D(int size, int dim, MoveDirection dir);
+    void reset2D(int size, bool reserveData = true);
+    // void operate2D(int size, int dim, MoveDirection dir);
     void operate2DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
     [[nodiscard]] static int parse3DSize(const QVariantList &sizeInfo);
     void emit3D(const QString &gameMode, int size);
     void reset3D(int size);
-    void operate3D(int size, int dim, MoveDirection dir);
+    // void operate3D(int size, int dim, MoveDirection dir);
     void operate3DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
+    GameData getDataWithIndex(int index);
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 4, 4> m_GameBoard4x4;
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 6, 6> m_GameBoard6x6;
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 8, 8> m_GameBoard8x8;
@@ -105,6 +126,10 @@ private:
     Logic2048_tm<ArchDynamic, size_t, size_t, 3, 6, 6, 6> m_GameBoard6x6x6;
     Logic2048_tm<ArchDynamic, size_t, size_t, 3, 8, 8, 8> m_GameBoard8x8x8;
 
+    QMap<QString, std::pair<int, int>> m_scoreMap{};
+
     Logic2048Dynamic m_GameBoardDynamic;
+
+    GameDataManager* m_dataManager;
 };
 #endif // GAME_2048_QUICK_GAME_2048_H

@@ -289,6 +289,7 @@ Item {
                     eulerRotation.y: 25
                     brightness: 1.2
                 }
+
                 PointLight {
                     position: Qt.vector3d(0, 320, 320)
                     brightness: 220

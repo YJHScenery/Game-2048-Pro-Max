@@ -28,17 +28,17 @@
  * @param Dimension 2048的维度
  * @param DimensionSize... 各维度的长度
  * @note 此为 C++模板元编程版本，后期将要引入非模板版本
-  * (详见 @file logic_2048_dynamic.h @class Logic2048Dynamic )
-  * 以适应运行时自定义尺寸
+ * (详见 @file logic_2048_dynamic.h @class Logic2048Dynamic )
+ * 以适应运行时自定义尺寸
  */
 enum class MoveDirection : std::int8_t
 {
     Negative = -1, // 沿此维度下索引减小方向
-    Positive = 1, // 沿此维度下索引增大方向
+    Positive = 1,  // 沿此维度下索引增大方向
 };
 
 //! @brief 用于强制指定计算平台，便于进行性能测试。
-enum Architecture: std::uint64_t
+enum Architecture : std::uint64_t
 {
     ArchDynamic = 0ull,
     ArchCPU = 0xFull,
@@ -46,7 +46,7 @@ enum Architecture: std::uint64_t
     ArchCANN = 0x00000F00ull
 };
 
-template <std::uint64_t Arch,  typename MetaType = size_t, typename SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
+template <std::uint64_t Arch, typename MetaType = size_t, typename SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
     requires((Dimension >= 2) && sizeof...(DimensionSize) == Dimension && ((DimensionSize != 0) && ...))
 class Logic2048_tm
 {
@@ -85,13 +85,16 @@ public:
 
     bool operateAndSpawn(size_type_ dim, MoveDirection dir);
 
+    template <typename Val_T, template <typename, typename...> typename Container>
+    void setData(const Container<Val_T> &ctn);
+
     struct TileMoveTrace
     {
-        size_type_ from{}; // flat index
-        size_type_ to{}; // flat index
+        size_type_ from{};  // flat index
+        size_type_ to{};    // flat index
         meta_type_ value{}; // value before move
-        bool merged{}; // whether this source tile participates in a merge
-        bool primary{}; // for merged pair: the first tile (kept) vs second (consumed)
+        bool merged{};      // whether this source tile participates in a merge
+        bool primary{};     // for merged pair: the first tile (kept) vs second (consumed)
     };
 
     struct TileMergeTrace
@@ -138,17 +141,20 @@ public:
 
     [[nodiscard]] data_mesh_type_ getData() { return m_data; }
 
-    [[nodiscard]] const data_mesh_type_& getDataRef() const { return m_data; }
+    [[nodiscard]] const data_mesh_type_ &getDataRef() const { return m_data; }
 
     constexpr static size_mesh_type_ getSizeArray() { return sizes_; }
 
     template <typename T, size_t NDims>
-    static void printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor, int indent = 0);
+
+    static void printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor> &tensor, int indent = 0);
 
 private:
     bool operateInternal(size_type_ dim, MoveDirection dir);
+
+    // 在空位填充一个数字
     bool spawnRandomTile();
-    bool spawnRandomTile(SpawnTrace& out);
+    bool spawnRandomTile(SpawnTrace &out);
 
     //! 随机数生成，90% 2，10% 4
     meta_type_ sampleNewTileValue();
@@ -168,7 +174,7 @@ private:
      */
     template <template <typename Val_T, typename...> typename Container>
 
-    bool setRandomLocationValue(size_t numCount, const Container<meta_type_>& presetValues);
+    bool setRandomLocationValue(size_t numCount, const Container<meta_type_> &presetValues);
 
     constexpr static size_mesh_type_ sizes_{DimensionSize...};
 
@@ -191,7 +197,8 @@ constexpr auto Logic2048_tm<
     {
         std_size_mesh_type_ strides{};
         strides[Dimension - 1] = 1;
-        for (size_type_ d = Dimension - 1; d-- > 0;) {
+        for (size_type_ d = Dimension - 1; d-- > 0;)
+        {
             strides[d] = strides[d + 1] * sizes_[d + 1];
         }
         return strides;
@@ -222,9 +229,9 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     const size_type_ line_count = total_elems / line_len;
     const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
     const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
-    ((dir == MoveDirection::Negative)
-         ? static_cast<std::int64_t>(1)
-         : static_cast<std::int64_t>(-1));
+                              ((dir == MoveDirection::Negative)
+                                   ? static_cast<std::int64_t>(1)
+                                   : static_cast<std::int64_t>(-1));
 
     std::vector<StandardLineDesc> lines;
     lines.reserve(static_cast<std::size_t>(line_count));
@@ -232,7 +239,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     std_size_mesh_type_ idx{};
     idx[dim] = start_index;
 
-    while (true) {
+    while (true)
+    {
         std::uint64_t offset = 0;
         for (size_type_ d = 0; d < Dimension; ++d)
             offset += static_cast<std::uint64_t>((idx.at(d) ? idx.at(d) : 0) * strides_[d]);
@@ -241,7 +249,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
         // odometer increment on all dims except dim
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
-        for (; carry_dim >= 0; --carry_dim) {
+        for (; carry_dim >= 0; --carry_dim)
+        {
             const auto d = static_cast<size_type_>(carry_dim);
             if (d == dim)
                 continue;
@@ -258,7 +267,7 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     if (lines.size() != static_cast<std::size_t>(line_count))
         return false;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     std::vector<long long> buf(total_elems);
     for (size_type_ i = 0; i < total_elems; ++i)
@@ -266,26 +275,31 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
     const std::vector<long long> before = buf;
 
-    if constexpr (Arch == ArchDynamic) {
-        if constexpr (Dimension <= 3) {
+    if constexpr (Arch == ArchDynamic)
+    {
+        if constexpr (Dimension <= 3)
+        {
             move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
                            static_cast<std::size_t>(line_len));
         }
-        else {
-            int* device{nullptr};
+        else
+        {
+            int *device{nullptr};
             move_lines_gpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
                            static_cast<std::size_t>(line_len), device);
         }
-    } else if constexpr( Arch == ArchCPU) {
+    }
+    else if constexpr (Arch == ArchCPU)
+    {
         move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                           static_cast<std::size_t>(line_len));
-    } else if constexpr (Arch == ArchCUDA) {
-        int* device{nullptr};
+                       static_cast<std::size_t>(line_len));
+    }
+    else if constexpr (Arch == ArchCUDA)
+    {
+        int *device{nullptr};
         move_lines_gpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
                        static_cast<std::size_t>(line_len), device);
     }
-
-
 
     const bool changed{buf != before};
 
@@ -314,6 +328,38 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 CURRENT_TEMPLATE_DEFINITION
+template <typename Val_T, template <typename, typename...> class Container>
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setData(const Container<Val_T> &ctn)
+{
+    typename std::remove_cvref_t<decltype(ctn)>::size_type ctnSize{ctn.size()};
+    if (ctnSize != static_cast<decltype(ctnSize)>(total_elems_))
+    {
+        return;
+    }
+
+    if constexpr (std::is_same_v<std::remove_cv_t<Val_T>, meta_type_>)
+    {
+        using const_data_mesh_type_ = Eigen::Tensor<const meta_type_, Dimension, Eigen::RowMajor, size_type_>;
+        const Eigen::TensorMap<const const_data_mesh_type_> mapped(ctn.data(), DimensionSize...);
+        m_data = mapped;
+    }
+    else
+    {
+        // Fallback: element-wise copy when the source container's value type differs.
+        const meta_type_ *src = nullptr;
+        std::vector<meta_type_> tmp;
+        tmp.reserve(static_cast<std::size_t>(total_elems_));
+        for (size_type_ i = 0; i < total_elems_; ++i)
+            tmp.push_back(static_cast<meta_type_>(ctn[static_cast<typename std::remove_cvref_t<decltype(ctn)>::size_type>(i)]));
+        src = tmp.data();
+
+        using const_data_mesh_type_ = Eigen::Tensor<const meta_type_, Dimension, Eigen::RowMajor, size_type_>;
+        const Eigen::TensorMap<const const_data_mesh_type_> mapped(src, DimensionSize...);
+        m_data = mapped;
+    }
+}
+
+CURRENT_TEMPLATE_DEFINITION
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawnTrace(
     size_type_ dim, const MoveDirection dir) -> MoveTrace
 {
@@ -333,9 +379,9 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     const size_type_ line_count = total_elems / line_len;
     const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
     const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
-    ((dir == MoveDirection::Negative)
-         ? static_cast<std::int64_t>(1)
-         : static_cast<std::int64_t>(-1));
+                              ((dir == MoveDirection::Negative)
+                                   ? static_cast<std::int64_t>(1)
+                                   : static_cast<std::int64_t>(-1));
 
     std::vector<StandardLineDesc> lines;
     lines.reserve(static_cast<std::size_t>(line_count));
@@ -343,7 +389,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     std_size_mesh_type_ idx{};
     idx[dim] = start_index;
 
-    while (true) {
+    while (true)
+    {
         std::uint64_t offset = 0;
         for (size_type_ d = 0; d < Dimension; ++d)
             offset += static_cast<std::uint64_t>(idx[d] * strides_[d]);
@@ -352,7 +399,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
         // odometer increment on all dims except dim
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
-        for (; carry_dim >= 0; --carry_dim) {
+        for (; carry_dim >= 0; --carry_dim)
+        {
             const auto d = static_cast<size_type_>(carry_dim);
             if (d == dim)
                 continue;
@@ -369,22 +417,23 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     if (lines.size() != static_cast<std::size_t>(line_count))
         return trace;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     // operateInternal 当前使用 long long 作为统一缓冲；trace 也沿用以保持一致。
     std::vector<long long> buf(total_elems);
     for (size_type_ i = 0; i < total_elems; ++i)
         buf[i] = static_cast<long long>(raw[i]);
 
-    const std::vector<long long> before {buf};
+    const std::vector<long long> before{buf};
 
     trace.moves.reserve(static_cast<std::size_t>(total_elems));
     trace.merges.reserve(static_cast<std::size_t>(total_elems / 2));
 
-    for (std::size_t line_id = 0; line_id < static_cast<std::size_t>(line_count); ++line_id) {
-        const StandardLineDesc desc {lines[line_id]};
-        const std::uint64_t base {desc.start};
-        const std::int64_t lstep {desc.step};
+    for (std::size_t line_id = 0; line_id < static_cast<std::size_t>(line_count); ++line_id)
+    {
+        const StandardLineDesc desc{lines[line_id]};
+        const std::uint64_t base{desc.start};
+        const std::int64_t lstep{desc.step};
 
         struct ReadTile
         {
@@ -395,7 +444,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
         std::vector<ReadTile> readTiles;
         readTiles.reserve(static_cast<std::size_t>(line_len));
 
-        for (size_type_ read = 0; read < line_len; ++read) {
+        for (size_type_ read = 0; read < line_len; ++read)
+        {
             const std::int64_t pos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(read) * lstep;
             const auto ipos = static_cast<size_type_>(pos);
             const long long v = before[ipos];
@@ -408,14 +458,17 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
         ReadTile prev{};
         size_type_ write = 0;
 
-        for (const auto& t : readTiles) {
-            if (!has_prev) {
+        for (const auto &t : readTiles)
+        {
+            if (!has_prev)
+            {
                 prev = t;
                 has_prev = true;
                 continue;
             }
 
-            if (t.value == prev.value) {
+            if (t.value == prev.value)
+            {
                 const long long merged = prev.value + t.value;
                 const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
                 const auto iwpos = static_cast<size_type_>(wpos);
@@ -428,7 +481,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
                 ++write;
                 has_prev = false;
             }
-            else {
+            else
+            {
                 const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
                 const auto iwpos = static_cast<size_type_>(wpos);
                 buf[iwpos] = prev.value;
@@ -440,7 +494,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
             }
         }
 
-        if (has_prev) {
+        if (has_prev)
+        {
             const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
             const auto iwpos = static_cast<size_type_>(wpos);
             buf[iwpos] = prev.value;
@@ -448,7 +503,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
             ++write;
         }
 
-        for (size_type_ i = write; i < line_len; ++i) {
+        for (size_type_ i = write; i < line_len; ++i)
+        {
             const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(i) * lstep;
             const auto iwpos = static_cast<size_type_>(wpos);
             buf[iwpos] = 0;
@@ -459,7 +515,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     for (size_type_ i = 0; i < total_elems; ++i)
         raw[i] = static_cast<meta_type_>(buf[i]);
 
-    if (trace.changed) {
+    if (trace.changed)
+    {
         SpawnTrace s;
         if (spawnRandomTile(s))
             trace.spawn = s;
@@ -471,7 +528,7 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 CURRENT_TEMPLATE_DEFINITION
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::flatData() const -> std::vector<meta_type_>
 {
-    const meta_type_* raw = m_data.data();
+    const meta_type_ *raw = m_data.data();
     return std::vector<meta_type_>(raw, raw + total_elems_);
 }
 
@@ -486,10 +543,11 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::sample
 CURRENT_TEMPLATE_DEFINITION
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile()
 {
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -503,12 +561,13 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnR
 }
 
 CURRENT_TEMPLATE_DEFINITION
-bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace& out)
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace &out)
 {
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -534,17 +593,20 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::output
 CURRENT_TEMPLATE_DEFINITION
 template <typename T, size_t NDims>
 void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::printTensor(
-    const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor,
+    const Eigen::Tensor<T, NDims, Eigen::RowMajor> &tensor,
     int indent)
 {
     std::string prefix(indent, ' ');
-    if constexpr (NDims == 1) {
+    if constexpr (NDims == 1)
+    {
         for (int i = 0; i < tensor.dimension(0); ++i)
             std::cout << prefix << tensor(i) << " ";
         std::cout << "\n";
     }
-    else {
-        for (int i = 0; i < tensor.dimension(0); ++i) {
+    else
+    {
+        for (int i = 0; i < tensor.dimension(0); ++i)
+        {
             std::cout << prefix << "[Slice " << i << "]\n";
             auto slice = tensor.chip(i, 0); // 沿第0维切片，偏移量为i
             printTensor<T, NDims - 1>(slice, indent + 2);
@@ -555,16 +617,17 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::printT
 CURRENT_TEMPLATE_DEFINITION
 template <template <typename Val_T, typename...> typename Container>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRandomLocationValue(
-    size_t numCount, const Container<meta_type_>& presetValues)
+    size_t numCount, const Container<meta_type_> &presetValues)
 {
     if (numCount == 0)
         return true;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -581,7 +644,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRan
     std::uniform_int_distribution<std::size_t> presetPick(0, presetCount - 1);
 
     const std::size_t actualCount = std::min<std::size_t>(numCount, empties.size());
-    for (std::size_t n = 0; n < actualCount; ++n) {
+    for (std::size_t n = 0; n < actualCount; ++n)
+    {
         const auto cell = empties[n];
         const auto pvIndex = presetPick(m_rng);
         auto it = presetValues.begin();
@@ -591,9 +655,6 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRan
 
     return true;
 }
-
-
-
 
 #undef CURRENT_TEMPLATE_DEFINITION
 #endif // GAME_2048_QUICK_LOGIC2048BASE_H

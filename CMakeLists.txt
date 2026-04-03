@@ -8,7 +8,7 @@ set(CMAKE_AUTOUIC ON)
 
 set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-set(CMAKE_CUDA_ARCHITECTURES 90)     # ✅ RTX 5070 专属算力9.0（关键！）
+set(CMAKE_CUDA_ARCHITECTURES 120)     # ✅ RTX 5070 专属算力9.0（关键！）
 # set(CMAKE_CUDA_COMPILER cl.exe)      # Windows指定VS编译器
 
 # ===================== 3. 找到CUDA工具包（自动搜索） =====================
@@ -34,12 +34,14 @@ set(CPP_HEADER_FILES
         src/cpp/headers/basic_dependency.h
         src/cpp/headers/game_2048.h
         src/cpp/headers/logic_2048_dynamic.h
+        src/cpp/headers/game_data_manager.h
 )
 
 set(CPP_SOURCE_FILES
         src/cpp/sources/logic_2048_dynamic.cpp
         src/cpp/sources/main.cpp
         src/cpp/sources/game_2048.cpp
+        src/cpp/sources/game_data_manager.cpp
 )
 
 set(CUDA_SOURCE_FILES
@@ -61,7 +63,7 @@ set(TEST_SOURCE_FILES
 
 
 set(QT_MODULES_LIST
-        Core Gui Widgets Quick Qml Quick3D
+        Core Gui Widgets Quick Qml Quick3D Sql
 )
 
 set(CUDA_MODULES_LIST
@@ -117,19 +119,19 @@ if (WIN32 AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach (QT_LIB)
 
-        find_program(WINDEPLOYQT_EXECUTABLE
-                        NAMES windeployqt
-                        HINTS "${QT_INSTALL_PATH}/bin")
-        if (WINDEPLOYQT_EXECUTABLE)
-                add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                                COMMAND "${WINDEPLOYQT_EXECUTABLE}"
-                                --no-translations
-                                --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/src/qml"
-                                "$<TARGET_FILE:${PROJECT_NAME}>"
-                                COMMENT "Deploying Qt runtime + QML modules via windeployqt")
-        else ()
-                message(WARNING "windeployqt not found under '${QT_INSTALL_PATH}/bin'. QML modules (QtQuick/Controls/Layouts) may fail to load at runtime.")
-        endif ()
+    find_program(WINDEPLOYQT_EXECUTABLE
+                    NAMES windeployqt
+                    HINTS "${QT_INSTALL_PATH}/bin")
+    if (WINDEPLOYQT_EXECUTABLE)
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                            COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                            --no-translations
+                            --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/src/qml"
+                            "$<TARGET_FILE:${PROJECT_NAME}>"
+                            COMMENT "Deploying Qt runtime + QML modules via windeployqt")
+    else ()
+            message(WARNING "windeployqt not found under '${QT_INSTALL_PATH}/bin'. QML modules (QtQuick/Controls/Layouts) may fail to load at runtime.")
+    endif ()
 endif ()
 
 
