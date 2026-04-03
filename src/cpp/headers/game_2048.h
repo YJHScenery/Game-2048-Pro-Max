@@ -39,6 +39,9 @@ public:
     void saveAllData();
 
     void loadAllData();
+
+    void loadAllHash();
+
 public slots:
     void resetGame_emitted(const QString &gameMode, const QVariantList &sizeInfo);
 
@@ -77,6 +80,8 @@ public slots:
 
     QVariantList getBoardData_emitted(int innerIndex) const;
 signals:
+
+    void gameOver();
 
     void sendGameData(const QString &gameMode, const QVariantList &sizeInfo, const QVariantList &flatData);
 
@@ -131,5 +136,7 @@ private:
     Logic2048Dynamic m_GameBoardDynamic;
 
     GameDataManager* m_dataManager;
+
+    QList<std::uint64_t> m_hashList{QList<uint64_t>(6)};
 };
 #endif // GAME_2048_QUICK_GAME_2048_H

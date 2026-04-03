@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "basic_dependency.h"
 
@@ -35,6 +36,11 @@ void cuda_move_lines_ld(double *h_data, const StandardLineDesc *h_lines, std::si
 
 void cuda_move_lines_uld(double *h_data, const StandardLineDesc *h_lines, std::size_t line_count, std::size_t line_len,
 						 cudaStream_t stream = nullptr);
+
+
+template <typename T, size_t nDims, size_t... Dimensions>
+std::vector<EqualPair> find_equal_adjacent(const T* tensor_data);
+
 
 #endif
 #endif //GAME_2048_QUICK_CUDAINTERFACE_H

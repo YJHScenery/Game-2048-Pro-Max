@@ -5,10 +5,11 @@
 #ifndef GAME_2048_QUICK_HPC_INTERFACE_H
 #define GAME_2048_QUICK_HPC_INTERFACE_H
 
-#include "cuda_interface.h"
+#include "cuda_interface.cuh"
 #include "cann_interface.h"
 #include "cpu_interface.h"
 #include <utility>
+#include "basic_dependency.h"
 
 
 template <typename T, typename LineDesc, typename Device>
@@ -37,6 +38,17 @@ void move_lines_gpu(T *h_data, const LineDesc *h_lines, const std::size_t line_c
     }
 }
 
+template <typename T, size_t nDim, size_t... Dimensions>
+std::vector<EqualPair> check_equals_gpu(T* tensor_data)
+{
+    const std::vector<EqualPair> results { find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
+    return std::move(results);
+}
 
-
+template <typename T, size_t nDim, size_t... Dimensions>
+bool check_equals_cpu(T* tensor_data)
+{
+    const std::vector<EqualPair> results { find_equal_adjacent<T, nDim, Dimensions...>(tensor_data)};
+    return results.empty();
+}
 #endif //GAME_2048_QUICK_HPC_INTERFACE_H

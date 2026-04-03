@@ -27,7 +27,11 @@ Game2048::Game2048(QObject *parent) : QObject(parent), m_dataManager(GameDataMan
 
     loadAllData();
 
+    loadAllHash();
+
     connect(this, &Game2048::updateGameScore, this, &Game2048::gameScore_updated, Qt::QueuedConnection);
+
+    connect(this, &Game2048::gameOver, this, [](){qDebug() << "gameOver";});
 }
 
 Game2048::~Game2048()
@@ -52,12 +56,12 @@ void Game2048::loadAllData()
     GameData data6x6x6{m_dataManager->loadGame({6, 6, 6})};
     GameData data8x8x8{m_dataManager->loadGame({8, 8, 8})};
 
-    m_scoreMap["4x4"] = {data4x4.maxScore, data4x4.currentScore};
-    m_scoreMap["6x6"] = {data6x6.maxScore, data6x6.currentScore};
-    m_scoreMap["8x8"] = {data8x8.maxScore, data8x8.currentScore};
-    m_scoreMap["4x4x4"] = {data4x4x4.maxScore, data4x4x4.currentScore};
-    m_scoreMap["6x6x6"] = {data6x6x6.maxScore, data6x6x6.currentScore};
-    m_scoreMap["8x8x8"] = {data8x8x8.maxScore, data8x8x8.currentScore};
+    m_scoreMap[keyFor2DSize(4)] = {data4x4.maxScore, data4x4.currentScore};
+    m_scoreMap[keyFor2DSize(6)] = {data6x6.maxScore, data6x6.currentScore};
+    m_scoreMap[keyFor2DSize(8)] = {data8x8.maxScore, data8x8.currentScore};
+    m_scoreMap[keyFor3DSize(4)] = {data4x4x4.maxScore, data4x4x4.currentScore};
+    m_scoreMap[keyFor3DSize(6)] = {data6x6x6.maxScore, data6x6x6.currentScore};
+    m_scoreMap[keyFor3DSize(8)] = {data8x8x8.maxScore, data8x8x8.currentScore};
 
     static_assert(std::is_same_v<QList<int>::size_type, qsizetype>);
 
@@ -67,6 +71,12 @@ void Game2048::loadAllData()
     m_GameBoard4x4x4.setData<std::uint64_t, QList>(data4x4x4.flatTensorData);
     m_GameBoard6x6x6.setData<std::uint64_t, QList>(data6x6x6.flatTensorData);
     m_GameBoard8x8x8.setData<std::uint64_t, QList>(data8x8x8.flatTensorData);
+}
+
+void Game2048::loadAllHash()
+{
+    m_hashList << m_GameBoard4x4.getHash() << m_GameBoard6x6.getHash() << m_GameBoard8x8.getHash();
+    m_hashList << m_GameBoard4x4x4.getHash() << m_GameBoard6x6x6.getHash() << m_GameBoard8x8x8.getHash();
 }
 
 int Game2048::parse2DSize(const QVariantList &sizeInfo)
@@ -190,6 +200,20 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[1] == m_GameBoard6x6.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard6x6.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[1] = m_GameBoard6x6.getHash();
+        }
     }
     else if (size == 8)
     {
@@ -201,6 +225,20 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[2] == m_GameBoard8x8.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard8x8.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[2] = m_GameBoard8x8.getHash();
+        }
     }
     else
     {
@@ -212,6 +250,20 @@ void Game2048::operate2DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[0] == m_GameBoard4x4.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard4x4.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[0] = m_GameBoard4x4.getHash();
+        }
     }
 
     emit sendMoveTrace2D(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat, moves, merges, spawn);
@@ -337,6 +389,20 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[4] == m_GameBoard6x6x6.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard6x6x6.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[4] = m_GameBoard6x6x6.getHash();
+        }
     }
     else if (size == 8)
     {
@@ -348,6 +414,20 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[5] == m_GameBoard8x8x8.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard8x8x8.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[5] = m_GameBoard8x8x8.getHash();
+        }
     }
     else
     {
@@ -359,6 +439,20 @@ void Game2048::operate3DAndEmitTrace(const QString &gameMode, const int size, co
             flat << static_cast<qulonglong>(v);
 
         fillCommon(trace);
+
+        if (m_hashList[3] == m_GameBoard4x4x4.getHash()) {
+            std::vector<EqualPair> equals{m_GameBoard4x4x4.checkOver()};
+            if (equals.empty()) {
+                emit gameOver();
+            }else {
+                for (const auto v : equals) {
+                    qDebug() << v.dim << " " << v.pos;
+                }
+                qDebug() << "Not over";
+            }
+        }else {
+            m_hashList[3] = m_GameBoard4x4x4.getHash();
+        }
     }
 
     emit sendMoveTrace3D(gameMode.isEmpty() ? QStringLiteral("Static") : gameMode, outSize, flat, moves, merges, spawn);
@@ -380,8 +474,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {4, 4},
-            .currentScore = m_scoreMap[QString{"4x4"}].second,
-            .maxScore = m_scoreMap[QString{"4x4"}].first,
+            .currentScore = m_scoreMap[keyFor2DSize(4)].second,
+            .maxScore = m_scoreMap[keyFor2DSize(4)].first,
             .flatTensorData = processFunc(m_GameBoard4x4.flatData())};
         break;
     }
@@ -389,8 +483,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {6, 6},
-            .currentScore = m_scoreMap[QString{"6x6"}].second,
-            .maxScore = m_scoreMap[QString{"6x6"}].first,
+            .currentScore = m_scoreMap[keyFor2DSize(6)].second,
+            .maxScore = m_scoreMap[keyFor2DSize(6)].first,
             .flatTensorData = processFunc(m_GameBoard6x6.flatData())};
         break;
     }
@@ -398,8 +492,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {8, 8},
-            .currentScore = m_scoreMap[QString{"8x8"}].second,
-            .maxScore = m_scoreMap[QString{"8x8"}].first,
+            .currentScore = m_scoreMap[keyFor2DSize(8)].second,
+            .maxScore = m_scoreMap[keyFor2DSize(8)].first,
             .flatTensorData = processFunc(m_GameBoard8x8.flatData())};
         break;
     }
@@ -407,8 +501,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {4, 4, 4},
-            .currentScore = m_scoreMap[QString{"4x4x4"}].second,
-            .maxScore = m_scoreMap[QString{"4x4x4"}].first,
+            .currentScore = m_scoreMap[keyFor3DSize(4)].second,
+            .maxScore = m_scoreMap[keyFor3DSize(4)].first,
             .flatTensorData = processFunc(m_GameBoard4x4x4.flatData())};
         break;
     }
@@ -416,8 +510,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {6, 6, 6},
-            .currentScore = m_scoreMap[QString{"6x6x6"}].second,
-            .maxScore = m_scoreMap[QString{"6x6x6"}].first,
+            .currentScore = m_scoreMap[keyFor3DSize(6)].second,
+            .maxScore = m_scoreMap[keyFor3DSize(6)].first,
             .flatTensorData = processFunc(m_GameBoard6x6x6.flatData())};
         break;
     }
@@ -425,8 +519,8 @@ GameData Game2048::getDataWithIndex(int index)
     {
         data = {
             .gameSize = {8, 8, 8},
-            .currentScore = m_scoreMap[QString{"8x8x8"}].second,
-            .maxScore = m_scoreMap[QString{"8x8x8"}].first,
+            .currentScore = m_scoreMap[keyFor3DSize(8)].second,
+            .maxScore = m_scoreMap[keyFor3DSize(8)].first,
             .flatTensorData = processFunc(m_GameBoard8x8x8.flatData())};
         break;
     }
@@ -581,32 +675,32 @@ QVariantList Game2048::getScoreInfo_emitted(const int innerIndex)
     {
     case 0:
     {
-        key = "4x4";
+        key = keyFor2DSize(4);
         break;
     }
     case 1:
     {
-        key = "6x6";
+        key = keyFor2DSize(6);
         break;
     }
     case 2:
     {
-        key = "8x8";
+        key = keyFor2DSize(8);
         break;
     }
     case 3:
     {
-        key = "4x4x4";
+        key = keyFor3DSize(4);
         break;
     }
     case 4:
     {
-        key = "6x6x6";
+        key = keyFor3DSize(6);
         break;
     }
     case 5:
     {
-        key = "8x8x8";
+        key = keyFor3DSize(8);
         break;
     }
     default:

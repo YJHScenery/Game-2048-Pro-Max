@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
 import QtQuick.Window
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: root
@@ -23,6 +24,7 @@ ApplicationWindow {
     readonly property bool isCustomMode: selectedIndex < 0
     readonly property var selectedMode: (!isCustomMode && selectedIndex >= 0 && selectedIndex < modeModel.count) ? modeModel.get(selectedIndex) : null
 
+
     Connections{
         target: game2048
 
@@ -30,6 +32,16 @@ ApplicationWindow {
         function onSendScoreInfoToQML(scoreInfo) {
             root.maxScore = scoreInfo[0]
             root.currentScore = scoreInfo[1]
+        }
+
+        function onGameOver(){
+            // 或者使用更标准的加载方式（推荐）：
+            var component = Qt.createComponent("GameOverDialog.qml");
+            if (component.status === Component.Ready) {
+                var dialog = component.createObject(root);
+                dialog.open();
+            }
+
         }
     }
 

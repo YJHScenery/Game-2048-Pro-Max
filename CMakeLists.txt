@@ -6,6 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
+
 set(CMAKE_CUDA_STANDARD 20)          # CUDA C++17
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_ARCHITECTURES 120)     # ✅ RTX 5070 专属算力9.0（关键！）
@@ -14,9 +15,11 @@ set(CMAKE_CUDA_ARCHITECTURES 120)     # ✅ RTX 5070 专属算力9.0（关键！
 # ===================== 3. 找到CUDA工具包（自动搜索） =====================
 find_package(CUDAToolkit REQUIRED)
 
+set(CUDA_SEPARABLE_COMPILATION ON)
 
 set(CMAKE_PREFIX_PATH "D:/Qt/6.9.3/msvc2022_64")
 
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
 
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cpp/headers
@@ -26,7 +29,7 @@ include_directories(
 
 set(CPP_HEADER_FILES
         src/cpp/headers/logic_2048_tmp.h
-        src/cpp/headers/cuda_interface.h
+        src/cpp/headers/cuda_interface.cuh
         src/cpp/headers/tmp_utility.h
         src/cpp/headers/hpc_interface.h
         src/cpp/headers/cann_interface.h
@@ -46,7 +49,8 @@ set(CPP_SOURCE_FILES
 )
 
 set(CUDA_SOURCE_FILES
-        src/cpp/cuda/cuda_interface.cu
+        src/cpp/cuda/cuda_move_lines.cu
+        src/cpp/cuda/cuda_equal_adjacent.cu
 )
 
 set(RESOURCE_FILES

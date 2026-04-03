@@ -90,6 +90,9 @@ public:
 
     bool operateAndSpawn(size_type_ dim, MoveDirection dir);
 
+    // 执行检查，判断整个张量是否无法通过任何 operation 改变
+    std::vector<EqualPair> checkOver();
+
     template <typename Val_T, template <typename, typename...> typename Container>
     void setData(const Container<Val_T> &ctn);
 
@@ -315,7 +318,7 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 CURRENT_TEMPLATE_DEFINITION
- Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::hash_type_ Logic2048_tm<Arch, MetaType,
+Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::hash_type_ Logic2048_tm<Arch, MetaType,
 SizeType, Dimension, DimensionSize...>::getHash()
 {
     std::size_t seed = 0;
@@ -323,7 +326,8 @@ SizeType, Dimension, DimensionSize...>::getHash()
     // 1. 混合维度信息（防止不同形状但内存数据巧合相同的张量哈希冲突）
     // 例如：1x4 和 2x2 如果数据一样，不加维度哈希可能会冲突
     for (int i = 0; i < m_data.rank(); ++i) {
-        hashCombineBytes(seed, reinterpret_cast<const unsigned char*>(&m_data.dimension(i)), sizeof(int));
+        const auto dimValue = m_data.dimension(i);
+        hashCombineBytes(seed, reinterpret_cast<const unsigned char *>(&dimValue), sizeof(dimValue));
     }
 
     // 2. 混合数据内容
@@ -352,6 +356,12 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     if (changed)
         std::ignore = spawnRandomTile();
     return changed;
+}
+
+CURRENT_TEMPLATE_DEFINITION
+std::vector<EqualPair> Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::checkOver()
+{
+    return check_equals_gpu<MetaType, Dimension, DimensionSize...>(m_data.data());
 }
 
 CURRENT_TEMPLATE_DEFINITION
@@ -564,7 +574,7 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::sample
 {
     // 90% -> 2, 10% -> 4
     std::uniform_int_distribution dist(0, 9);
-    return (dist(m_rng) == 0) ? static_cast<meta_type_>(4) : static_cast<meta_type_>(2);
+    return (dist(m_rng) <= 4) ? static_cast<meta_type_>(4) : static_cast<meta_type_>(2);
 }
 
 CURRENT_TEMPLATE_DEFINITION

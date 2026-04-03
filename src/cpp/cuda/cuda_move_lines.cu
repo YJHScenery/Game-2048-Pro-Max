@@ -1,4 +1,4 @@
-#include "cuda_interface.h"
+#include "cuda_interface.cuh"
 
 #include <cstdio>
 #include <string>
@@ -398,3 +398,4 @@ void cuda_move_lines_uld(double *h_data, const StandardLineDesc *h_lines, std::s
     cudaFree(d_lines);
     cudaFree(d_data);
 }
+
