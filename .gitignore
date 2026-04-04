@@ -8,4 +8,6 @@ release/
 
 *.zip
 
+stats_output/
+
 src/qml/*.autosave
