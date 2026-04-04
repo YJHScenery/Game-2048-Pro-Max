@@ -34,6 +34,18 @@ __global__ void check_adjacent_kernel(const T* tensorData,
         remaining %= strides[d];
     }
 
+    if (tensorData[idx] == T{}) {
+        const size_t count = atomicAdd(resultSize, 1);
+        if (count < resultCap) {
+            EqualPairPod<nDims>* result = &results[count];
+            for (size_t i = 0; i < nDims; i++) {
+                result->pos[i] = pos[i];
+            }
+            result->dim = 0;
+        }
+        return;
+    }
+
     for (size_t d{0}; d < nDims; d++) {
         if (pos[d] + 1 < dimsList[d]) {
             // 计算相邻元素的线性索引
@@ -143,6 +155,11 @@ void check_adjacent_kernel<size_t, 3, 8, 8, 8>(const size_t* tensorData,
                                                EqualPairPod<3>* results,
                                                size_t resultCap,
                                                size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 6, 8, 8, 8, 8, 8, 8>(const size_t* tensorData,
+                                                        EqualPairPod<6>* results,
+                                                        size_t resultCap,
+                                                        size_t* resultSize);
 
 template std::vector<EqualPair> cuda_find_equal<size_t, 2, 4, 4>(const size_t* tensor_data);
 
@@ -155,3 +172,5 @@ template std::vector<EqualPair> cuda_find_equal<size_t, 3, 4, 4, 4>(const size_t
 template std::vector<EqualPair> cuda_find_equal<size_t, 3, 6, 6, 6>(const size_t* tensor_data);
 
 template std::vector<EqualPair> cuda_find_equal<size_t, 3, 8, 8, 8>(const size_t* tensor_data);
+
+template std::vector<EqualPair> cuda_find_equal<size_t, 6, 8, 8, 8, 8, 8, 8>(const size_t* tensor_data);

@@ -63,6 +63,7 @@ set(TEST_SOURCE_FILES
         test/benchmark_logic_tensor_ndim_template.cpp
         test/cuda_basic_benchmark.cpp
         test/get_gpu_information.cpp
+        test/random_game_test.cpp
 )
 
 

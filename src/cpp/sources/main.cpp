@@ -11,11 +11,13 @@
 #include <QIcon>
 
 int runBenchmarks();
+int run_random_game_test();
+void getGPUInformation();
 
 int main(int argc, char* argv[])
 {
-    void getGPUInformation();
-    getGPUInformation();
+
+    // getGPUInformation();
 
     if (argc >= 2 && std::string(argv[1]) == "--bench") {
 
@@ -26,6 +28,8 @@ int main(int argc, char* argv[])
     const QGuiApplication app(argc, argv);
 
     QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
+
+    // run_random_game_test();
 
     // 创建 Game 对象
     Game2048 game2048{nullptr};
@@ -53,5 +57,8 @@ int main(int argc, char* argv[])
     if (engine.rootObjects().isEmpty()) {
         return -1;
     }
+
+
+
     return QGuiApplication::exec();
 }

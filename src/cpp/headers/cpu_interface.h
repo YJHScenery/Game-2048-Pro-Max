@@ -93,6 +93,18 @@ std::vector<EqualPair> find_equal_cpu(const T* tensor_data)
             remaining %= strides[d];
         }
 
+        // Any zero tile means the board is not over yet.
+        if (tensor_data[idx] == T{})
+        {
+            EqualPair eq;
+            eq.pos.reserve(nDims);
+            for (size_t i = 0; i < nDims; ++i)
+                eq.pos.push_back(pos[i]);
+            eq.dim = 0;
+            results.push_back(std::move(eq));
+            continue;
+        }
+
         for (size_t d = 0; d < nDims; ++d)
         {
             if (pos[d] + 1 >= dims_list[d])
