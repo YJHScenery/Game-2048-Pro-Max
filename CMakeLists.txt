@@ -31,7 +31,6 @@ set(CPP_HEADER_FILES
         src/cpp/headers/logic_2048_tmp.h
         src/cpp/headers/cuda_interface.cuh
         src/cpp/headers/tmp_utility.h
-        src/cpp/headers/hpc_interface.h
         src/cpp/headers/cann_interface.h
         src/cpp/headers/cpu_interface.h
         src/cpp/headers/basic_dependency.h

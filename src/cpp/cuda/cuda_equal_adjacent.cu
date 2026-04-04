@@ -9,10 +9,10 @@ struct EqualPairPod
 };
 
 template <typename T, size_t nDims, size_t... Dimensions>
-__global__ void check_adjacent_kernel(const T *tensorData,
-                                      EqualPairPod<nDims> *results,
+__global__ void check_adjacent_kernel(const T* tensorData,
+                                      EqualPairPod<nDims>* results,
                                       const size_t resultCap,
-                                      size_t *resultSize)
+                                      size_t* resultSize)
 {
     const unsigned idx{blockIdx.x * blockDim.x + threadIdx.x};
     constexpr size_t size{(Dimensions * ...)};
@@ -23,39 +23,33 @@ __global__ void check_adjacent_kernel(const T *tensorData,
     size_t strides[nDims];
     strides[nDims - 1] = 1;
 
-    for (long long d = static_cast<long long>(nDims) - 2; d >= 0; --d)
-    {
+    for (long long d = static_cast<long long>(nDims) - 2; d >= 0; --d) {
         strides[d] = strides[d + 1] * dimsList[d + 1];
     }
 
     size_t pos[nDims];
     size_t remaining{idx};
-    for (size_t d{0}; d < nDims; ++d)
-    {
+    for (size_t d{0}; d < nDims; ++d) {
         pos[d] = remaining / strides[d];
         remaining %= strides[d];
     }
 
-    for (size_t d{0}; d < nDims; d++)
-    {
-        if (pos[d] + 1 < dimsList[d])
-        {
+    for (size_t d{0}; d < nDims; d++) {
+        if (pos[d] + 1 < dimsList[d]) {
             // 计算相邻元素的线性索引
             const size_t next_idx = idx + strides[d];
 
             // 比较当前元素与相邻元素
-            if (tensorData[idx] == tensorData[next_idx])
-            {
+            if (tensorData[idx] == tensorData[next_idx]) {
                 // 记录相等对（原子操作）
                 const size_t count = atomicAdd(resultSize, 1);
                 if (count >= resultCap)
                     continue;
 
-                EqualPairPod<nDims> *result = &results[count];
+                EqualPairPod<nDims>* result = &results[count];
 
                 // 存储起始位置和维度
-                for (size_t i = 0; i < nDims; i++)
-                {
+                for (size_t i = 0; i < nDims; i++) {
                     result->pos[i] = pos[i];
                 }
                 result->dim = d;
@@ -65,21 +59,21 @@ __global__ void check_adjacent_kernel(const T *tensorData,
 }
 
 template <typename T, size_t nDims, size_t... Dimensions>
-std::vector<EqualPair> find_equal_adjacent(const T *tensor_data)
+std::vector<EqualPair> cuda_find_equal(const T* tensor_data)
 {
     constexpr size_t tensor_len{(Dimensions * ...)};
     constexpr size_t max_result_count = tensor_len * nDims;
 
     // 1. 上传数据到GPU
-    T *d_data;
+    T* d_data;
     cudaMalloc(&d_data, tensor_len * sizeof(T));
     cudaMemcpy(d_data, tensor_data, tensor_len * sizeof(T), cudaMemcpyHostToDevice);
 
     // 2. 配置CUDA kernel
     int block_size = 256;
     size_t grid_size = (tensor_len + block_size - 1) / block_size;
-    EqualPairPod<nDims> *d_results;
-    size_t *d_result_count;
+    EqualPairPod<nDims>* d_results;
+    size_t* d_result_count;
     cudaMalloc(&d_results, max_result_count * sizeof(EqualPairPod<nDims>));
     cudaMalloc(&d_result_count, sizeof(size_t));
     cudaMemset(d_result_count, 0, sizeof(size_t));
@@ -102,8 +96,7 @@ std::vector<EqualPair> find_equal_adjacent(const T *tensor_data)
 
     std::vector<EqualPair> results;
     results.reserve(result_count);
-    for (const auto &pod : pod_results)
-    {
+    for (const auto& pod : pod_results) {
         EqualPair eq;
         eq.pos.reserve(nDims);
         for (size_t i = 0; i < nDims; ++i)
@@ -120,39 +113,45 @@ std::vector<EqualPair> find_equal_adjacent(const T *tensor_data)
     return results;
 }
 
-template __global__ void check_adjacent_kernel<size_t, 2, 4, 4>(const size_t *tensorData,
-                                                                EqualPairPod<2> *results,
-                                                                size_t resultCap,
-                                                                size_t *resultSize);
-template __global__ void check_adjacent_kernel<size_t, 2, 6, 6>(const size_t *tensorData,
-                                                                EqualPairPod<2> *results,
-                                                                size_t resultCap,
-                                                                size_t *resultSize);
-template __global__ void check_adjacent_kernel<size_t, 2, 8, 8>(const size_t *tensorData,
-                                                                EqualPairPod<2> *results,
-                                                                size_t resultCap,
-                                                                size_t *resultSize);
-template __global__ void check_adjacent_kernel<size_t, 3, 4, 4, 4>(const size_t *tensorData,
-                                                                   EqualPairPod<3> *results,
-                                                                   size_t resultCap,
-                                                                   size_t *resultSize);
-template __global__ void check_adjacent_kernel<size_t, 3, 6, 6, 6>(const size_t *tensorData,
-                                                                   EqualPairPod<3> *results,
-                                                                   size_t resultCap,
-                                                                   size_t *resultSize);
-template __global__ void check_adjacent_kernel<size_t, 3, 8, 8, 8>(const size_t *tensorData,
-                                                                   EqualPairPod<3> *results,
-                                                                   size_t resultCap,
-                                                                   size_t *resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 2, 4, 4>(const size_t* tensorData,
+                                            EqualPairPod<2>* results,
+                                            size_t resultCap,
+                                            size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 2, 6, 6>(const size_t* tensorData,
+                                            EqualPairPod<2>* results,
+                                            size_t resultCap,
+                                            size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 2, 8, 8>(const size_t* tensorData,
+                                            EqualPairPod<2>* results,
+                                            size_t resultCap,
+                                            size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 3, 4, 4, 4>(const size_t* tensorData,
+                                               EqualPairPod<3>* results,
+                                               size_t resultCap,
+                                               size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 3, 6, 6, 6>(const size_t* tensorData,
+                                               EqualPairPod<3>* results,
+                                               size_t resultCap,
+                                               size_t* resultSize);
+template __global__
+void check_adjacent_kernel<size_t, 3, 8, 8, 8>(const size_t* tensorData,
+                                               EqualPairPod<3>* results,
+                                               size_t resultCap,
+                                               size_t* resultSize);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 2, 4, 4>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 2, 4, 4>(const size_t* tensor_data);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 2, 6, 6>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 2, 6, 6>(const size_t* tensor_data);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 2, 8, 8>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 2, 8, 8>(const size_t* tensor_data);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 3, 4, 4, 4>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 3, 4, 4, 4>(const size_t* tensor_data);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 3, 6, 6, 6>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 3, 6, 6, 6>(const size_t* tensor_data);
 
-template std::vector<EqualPair> find_equal_adjacent<size_t, 3, 8, 8, 8>(const size_t *tensor_data);
+template std::vector<EqualPair> cuda_find_equal<size_t, 3, 8, 8, 8>(const size_t* tensor_data);
