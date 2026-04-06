@@ -42,6 +42,12 @@ set(TEST_SOURCE_FILES
         test/random_game_test.cpp
 )
 
+set(AI_MODE_FILES
+        src/ai_mode/board.c
+        src/ai_mode/board.h
+        src/ai_mode/ai_mode.h
+        src/ai_mode/ai_mode.c
+)
 
 set(QT_MODULES_LIST
         Core Gui Widgets Quick Qml Quick3D Sql
@@ -57,6 +63,7 @@ add_executable(${PROJECT_NAME}
         ${CPP_SOURCE_FILES}
         ${TEST_SOURCE_FILES}
         ${RESOURCE_FILES}
+        ${AI_MODE_FILES}
         )
 
 list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WITH_PREFIX)
