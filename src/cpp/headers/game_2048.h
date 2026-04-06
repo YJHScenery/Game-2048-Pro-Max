@@ -52,6 +52,8 @@ public slots:
 
     void right_operated(const QString &gameMode, const QVariantList &sizeInfo);
 
+    void aiStep2D_operated(const QString &gameMode, const QVariantList &sizeInfo);
+
     // void on_Forward_operated(const QString &gameMode, const QVariantList &sizeInfo);
     //
     // void on_Back_operated(const QString &gameMode, const QVariantList &sizeInfo);

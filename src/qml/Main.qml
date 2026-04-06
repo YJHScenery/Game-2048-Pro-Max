@@ -625,6 +625,25 @@ ApplicationWindow {
                                             Material.foreground: "#e5e7eb"
                                         }
 
+                                        Button {
+                                            Layout.preferredWidth: 96
+                                            Layout.preferredHeight: 34
+                                            text: "AI 一步"
+                                            visible: !root.isCustomMode && root.selectedMode && root.selectedMode.dims === 2
+                                            enabled: visible && boardLoader && boardLoader.item && !boardLoader.item.isAnimating
+                                            onClicked: {
+                                                if (game2048 && game2048.aiStep2D_operated)
+                                                    game2048.aiStep2D_operated(root.selectedMode ? "Static" : "", [root.selectedMode.size, root.selectedMode.size]);
+
+                                                Qt.callLater(function () {
+                                                    if (boardLoader && boardLoader.item && boardLoader.item.forceActiveFocus)
+                                                        boardLoader.item.forceActiveFocus();
+                                                });
+                                            }
+                                            Material.background: "#0f172a"
+                                            Material.foreground: "#e5e7eb"
+                                        }
+
                                         KeyHintWidget {
                                             Layout.preferredWidth: 240
                                             Layout.alignment: Qt.AlignVCenter

@@ -4,8 +4,17 @@
 
 #include "game_2048.h"
 
+#include <cmath>
+#include <cfloat>
+
 namespace
 {
+    struct AiSearchResult
+    {
+        int move{-1};
+        float score{0.0f};
+    };
+
     QString keyFor2DSize(const int size)
     {
         return QStringLiteral("%1x%1").arg(size);
@@ -14,6 +23,416 @@ namespace
     QString keyFor3DSize(const int size)
     {
         return QStringLiteral("%1x%1x%1").arg(size);
+    }
+
+    inline std::size_t flatIndex(const int row, const int col, const int size)
+    {
+        return static_cast<std::size_t>(row * size + col);
+    }
+
+    float calculateEmpty(const std::vector<std::size_t> &data)
+    {
+        int empty = 0;
+        for (const auto v : data)
+        {
+            if (v == 0)
+                ++empty;
+        }
+        return static_cast<float>(empty);
+    }
+
+    float calculateMaxNum(const std::vector<std::size_t> &data)
+    {
+        std::size_t mx = 0;
+        for (const auto v : data)
+            if (v > mx)
+                mx = v;
+        return static_cast<float>(mx);
+    }
+
+    float calculateSmoothness(const std::vector<std::size_t> &data, const int size)
+    {
+        float smooth = 0.0f;
+        for (int i = 0; i < size; ++i)
+        {
+            for (int j = 0; j < size; ++j)
+            {
+                const auto v = data[flatIndex(i, j, size)];
+                if (v == 0)
+                    continue;
+
+                const float val = std::log2f(static_cast<float>(v) + 1.0f);
+                if (i + 1 < size)
+                {
+                    const float v2 = std::log2f(static_cast<float>(data[flatIndex(i + 1, j, size)]) + 1.0f);
+                    smooth -= std::fabs(v2 - val);
+                }
+                if (j + 1 < size)
+                {
+                    const float v2 = std::log2f(static_cast<float>(data[flatIndex(i, j + 1, size)]) + 1.0f);
+                    smooth -= std::fabs(v2 - val);
+                }
+                if (i - 1 >= 0)
+                {
+                    const float v2 = std::log2f(static_cast<float>(data[flatIndex(i - 1, j, size)]) + 1.0f);
+                    smooth -= std::fabs(v2 - val);
+                }
+                if (j - 1 >= 0)
+                {
+                    const float v2 = std::log2f(static_cast<float>(data[flatIndex(i, j - 1, size)]) + 1.0f);
+                    smooth -= std::fabs(v2 - val);
+                }
+            }
+        }
+        return smooth;
+    }
+
+    float calculateMonotonicity(const std::vector<std::size_t> &data, const int size)
+    {
+        float totals[4] = {0, 0, 0, 0};
+
+        for (int i = 0; i < size; ++i)
+        {
+            int current = 0;
+            int next = current + 1;
+            while (next < size)
+            {
+                while (next < size && data[flatIndex(i, next, size)] == 0)
+                    ++next;
+                if (next >= size)
+                    --next;
+
+                const auto currentRaw = data[flatIndex(i, current, size)];
+                const auto nextRaw = data[flatIndex(i, next, size)];
+                const float currentVal = (currentRaw != 0) ? std::log2f(static_cast<float>(currentRaw)) : 0.0f;
+                const float nextVal = (nextRaw != 0) ? std::log2f(static_cast<float>(nextRaw)) : 0.0f;
+
+                if (currentVal > nextVal)
+                    totals[0] += nextVal - currentVal;
+                else
+                    totals[1] += currentVal - nextVal;
+
+                current = next;
+                ++next;
+            }
+        }
+
+        for (int j = 0; j < size; ++j)
+        {
+            int current = 0;
+            int next = current + 1;
+            while (next < size)
+            {
+                while (next < size && data[flatIndex(next, j, size)] == 0)
+                    ++next;
+                if (next >= size)
+                    --next;
+
+                const auto currentRaw = data[flatIndex(current, j, size)];
+                const auto nextRaw = data[flatIndex(next, j, size)];
+                const float currentVal = (currentRaw != 0) ? std::log2f(static_cast<float>(currentRaw)) : 0.0f;
+                const float nextVal = (nextRaw != 0) ? std::log2f(static_cast<float>(nextRaw)) : 0.0f;
+
+                if (currentVal > nextVal)
+                    totals[2] += nextVal - currentVal;
+                else
+                    totals[3] += currentVal - nextVal;
+
+                current = next;
+                ++next;
+            }
+        }
+
+        const float max1 = (totals[0] > totals[1]) ? totals[0] : totals[1];
+        const float max2 = (totals[2] > totals[3]) ? totals[2] : totals[3];
+        return max1 + max2;
+    }
+
+    void markIsland(const std::vector<std::size_t> &data,
+                    const int size,
+                    const int x,
+                    const int y,
+                    const std::size_t value,
+                    std::vector<std::uint8_t> &marked)
+    {
+        if (x < 0 || x >= size || y < 0 || y >= size)
+            return;
+        const auto idx = flatIndex(x, y, size);
+        if (data[idx] == 0 || data[idx] != value || marked[idx] != 0)
+            return;
+
+        marked[idx] = 1;
+        markIsland(data, size, x + 1, y, value, marked);
+        markIsland(data, size, x - 1, y, value, marked);
+        markIsland(data, size, x, y + 1, value, marked);
+        markIsland(data, size, x, y - 1, value, marked);
+    }
+
+    float calculateIslands(const std::vector<std::size_t> &data, const int size)
+    {
+        std::vector<std::uint8_t> marked(static_cast<std::size_t>(size * size), 1);
+        for (int i = 0; i < size; ++i)
+        {
+            for (int j = 0; j < size; ++j)
+            {
+                const auto idx = flatIndex(i, j, size);
+                if (data[idx] != 0)
+                    marked[idx] = 0;
+            }
+        }
+
+        float islands = 0.0f;
+        for (int i = 0; i < size; ++i)
+        {
+            for (int j = 0; j < size; ++j)
+            {
+                const auto idx = flatIndex(i, j, size);
+                if (data[idx] != 0 && marked[idx] == 0)
+                {
+                    islands += 1.0f;
+                    markIsland(data, size, i, j, data[idx], marked);
+                }
+            }
+        }
+        return islands;
+    }
+
+    float calculateEvaluation(const std::vector<std::size_t> &data, const int size)
+    {
+        const float empty = calculateEmpty(data);
+        const float emptyWeight = 2.7f + (std::logf(17.0f) - std::logf(empty + 1.0f)) * 0.1f;
+        const float maxnumWeight = 1.0f;
+        const float smoothWeight = 0.1f;
+        const float monoWeight = 1.0f;
+
+        return emptyWeight * std::logf(empty + 1.0f) +
+               maxnumWeight * calculateMaxNum(data) +
+               smoothWeight * calculateSmoothness(data, size) +
+               monoWeight * calculateMonotonicity(data, size);
+    }
+
+    bool mapMoveToLogic(const int move, std::size_t &dim, MoveDirection &dir)
+    {
+        switch (move)
+        {
+        case 0: // left
+            dim = 1;
+            dir = MoveDirection::Negative;
+            return true;
+        case 1: // up
+            dim = 0;
+            dir = MoveDirection::Negative;
+            return true;
+        case 2: // right
+            dim = 1;
+            dir = MoveDirection::Positive;
+            return true;
+        case 3: // down
+            dim = 0;
+            dir = MoveDirection::Positive;
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    template <typename BoardT>
+    bool applyMoveNoSpawn(BoardT &board, const int move)
+    {
+        std::size_t dim = 0;
+        MoveDirection dir = MoveDirection::Negative;
+        if (!mapMoveToLogic(move, dim, dir))
+            return false;
+
+        const auto before = board.getHash();
+        board.operate(dim, dir);
+        return before != board.getHash();
+    }
+
+    template <typename BoardT>
+    bool setFlatCell(BoardT &board, const std::size_t index, const std::size_t value)
+    {
+        auto data = board.flatData();
+        if (index >= data.size() || data[index] != 0)
+            return false;
+        data[index] = value;
+        board.template setData<std::size_t, std::vector>(data);
+        return true;
+    }
+
+    template <typename BoardT>
+    std::vector<std::size_t> freeCells(const BoardT &board)
+    {
+        const auto data = board.flatData();
+        std::vector<std::size_t> out;
+        out.reserve(data.size());
+        for (std::size_t i = 0; i < data.size(); ++i)
+        {
+            if (data[i] == 0)
+                out.push_back(i);
+        }
+        return out;
+    }
+
+    template <typename BoardT>
+    AiSearchResult searchBest(BoardT board, const int depth, const float alpha, const float beta, const bool playerTurn, const int size)
+    {
+        AiSearchResult result;
+
+        if (playerTurn)
+        {
+            float bestScore = alpha;
+            int bestMove = -1;
+
+            for (int direction = 0; direction < 4; ++direction)
+            {
+                BoardT next = board;
+                const bool changed = applyMoveNoSpawn(next, direction);
+                if (!changed)
+                    continue;
+
+                AiSearchResult sub;
+                if (depth == 0)
+                {
+                    sub.move = direction;
+                    sub.score = calculateEvaluation(next.flatData(), size);
+                }
+                else
+                {
+                    sub = searchBest(next, depth - 1, bestScore, beta, false, size);
+                }
+
+                if (sub.score > bestScore)
+                {
+                    bestScore = sub.score;
+                    bestMove = direction;
+                }
+
+                if (bestScore > beta)
+                {
+                    result.move = bestMove;
+                    result.score = beta;
+                    return result;
+                }
+            }
+
+            result.move = bestMove;
+            result.score = bestScore;
+            return result;
+        }
+
+        float bestScore = beta;
+        const auto empty = freeCells(board);
+        if (empty.empty())
+        {
+            result.move = -1;
+            result.score = calculateEvaluation(board.flatData(), size);
+            return result;
+        }
+
+        std::vector<float> score2(empty.size(), -FLT_MAX);
+        std::vector<float> score4(empty.size(), -FLT_MAX);
+        for (std::size_t i = 0; i < empty.size(); ++i)
+        {
+            BoardT t2 = board;
+            if (setFlatCell(t2, empty[i], 2))
+                score2[i] = -calculateSmoothness(t2.flatData(), size) + calculateIslands(t2.flatData(), size);
+
+            BoardT t4 = board;
+            if (setFlatCell(t4, empty[i], 4))
+                score4[i] = -calculateSmoothness(t4.flatData(), size) + calculateIslands(t4.flatData(), size);
+        }
+
+        float maxScore = -FLT_MAX;
+        for (std::size_t i = 0; i < empty.size(); ++i)
+        {
+            if (score2[i] > maxScore)
+                maxScore = score2[i];
+            if (score4[i] > maxScore)
+                maxScore = score4[i];
+        }
+
+        struct WorstCase
+        {
+            std::size_t idx;
+            std::size_t value;
+        };
+        std::vector<WorstCase> worst;
+        worst.reserve(empty.size() * 2);
+        for (std::size_t i = 0; i < empty.size(); ++i)
+        {
+            if (score2[i] == maxScore)
+                worst.push_back({empty[i], 2});
+            if (score4[i] == maxScore)
+                worst.push_back({empty[i], 4});
+        }
+
+        for (const auto &w : worst)
+        {
+            BoardT next = board;
+            if (!setFlatCell(next, w.idx, w.value))
+                continue;
+
+            const auto sub = searchBest(next, depth, alpha, bestScore, true, size);
+            if (sub.score < bestScore)
+                bestScore = sub.score;
+
+            if (bestScore < alpha)
+            {
+                result.move = -1;
+                result.score = alpha;
+                return result;
+            }
+        }
+
+        result.move = -1;
+        result.score = bestScore;
+        return result;
+    }
+
+    inline int chooseDepth(const int size)
+    {
+        switch (size)
+        {
+        case 4:
+            return 4;
+        case 6:
+            return 1;
+        case 8:
+            return 1;
+        default:
+            return 1;
+        }
+    }
+
+    template <typename BoardT>
+    int getBestMove(BoardT board, const int size)
+    {
+        int depth = chooseDepth(size);
+        auto result = searchBest(board, depth, -1000000.0f, 1000000.0f, true, size);
+
+        while (depth > 0)
+        {
+            if (result.move == -1)
+                result = searchBest(board, --depth, -1000000.0f, 1000000.0f, true, size);
+            else
+                break;
+        }
+
+        if (result.move != -1)
+        {
+            BoardT test = board;
+            if (applyMoveNoSpawn(test, result.move))
+                return result.move;
+        }
+
+        for (int d = 0; d < 4; ++d)
+        {
+            BoardT test = board;
+            if (applyMoveNoSpawn(test, d))
+                return d;
+        }
+        return -1;
     }
 }
 
@@ -635,6 +1054,29 @@ void Game2048::right_operated(const QString &gameMode, const QVariantList &sizeI
 {
     const int size = parse2DSize(sizeInfo);
     operate2DAndEmitTrace(gameMode, size, 1, MoveDirection::Positive);
+}
+
+void Game2048::aiStep2D_operated(const QString &gameMode, const QVariantList &sizeInfo)
+{
+    const int size = parse2DSize(sizeInfo);
+    int move = -1;
+
+    if (size == 6)
+        move = getBestMove(m_GameBoard6x6, size);
+    else if (size == 8)
+        move = getBestMove(m_GameBoard8x8, size);
+    else
+        move = getBestMove(m_GameBoard4x4, size);
+
+    std::size_t dim = 0;
+    MoveDirection dir = MoveDirection::Negative;
+    if (!mapMoveToLogic(move, dim, dir))
+    {
+        emit gameOver();
+        return;
+    }
+
+    operate2DAndEmitTrace(gameMode, size, static_cast<int>(dim), dir);
 }
 
 // void Game2048::on_Forward_operated(const QString &gameMode, const QVariantList &sizeInfo)
