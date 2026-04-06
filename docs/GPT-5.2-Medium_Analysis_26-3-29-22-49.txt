@@ -1,0 +1,45 @@
+正在优化工具选择...
+
+我先快速扫一遍工程里现有的 2048 逻辑与 CUDA 接口文件（logic_2048_pm.h、cuda_interface、cuda/*.cu），确认当前数据结构与调用链；然后按你要求搭出“不用模板、四种类型四套 CUDA 实例”的完整代码框架（C++ 侧准备 line 描述 + 强转 + 调用，CUDA 侧按 line 并行执行线内规则）。
+
+我已经定位到 Logic2048_tm::move 的入口和 CUDA 接口文件。接下来我会打开 logic_2048_pm.h / cuda_interface.h / cuda_interface.cu，按你描述把“线描述生成 + 四种类型强转 + CUDA 并行线处理”的框架补全。
+
+接下来我会一次性把三个关键文件补齐：在 cuda_interface.h/.cu 里声明并实现“四种类型各一套”的 CUDA move 入口（每条线一个线程、线内规则原地执行），并在 logic_2048_pm.h 的 move(dim,dir) 里生成 line 描述（start/step/len）、完成强转与回写。这样你就能先跑通框架，再逐步做性能优化。
+
+我刚把 CUDA 侧的 kernel 和 host wrapper 写出来了，但发现两点需要立刻修正：1) 目前用了 C++ 模板做 wrapper，和你“不用模板”的要求冲突；2) kernel 的 launch 不能用函数指针方式。接下来我会把 .cu 改成纯宏/重复代码的四套 wrapper，保证 NVCC 可编译并严格符合约束。
+
+CUDA 侧现在已经是“四套非模板 kernel + 非模板 wrapper”了。下一步我会把 Logic2048_tm::move 补全：改用 MetaType 作为张量元素类型、按 dim/dir 生成每条线的 start/step 描述数组、把数据强转到 4 种固定类型之一后调用对应 CUDA 函数，最后再转回原类型写回张量。
+
+我看到 .cu 里宏展开处报了一组语法错误，基本像是宏行续接或关键字（__global__/CUDA 内建变量）在当前 IntelliSense 配置下没被正确识别。下一步我会直接打开 cuda_interface.cu 的宏定义段，修正宏格式（通常是末尾反斜杠/空白导致），并让它在 NVCC 下能稳定编译。
+
+CUDA 文件现在语法错误消掉了。为了避免真实编译时缺少头文件（std::string），我会再做一个小补丁：给 cuda_interface.cu 补上 <string> include，确保编译链更稳。
+
+已把“每条线并行 + 线内规则原地处理 + 四种类型四套 CUDA 入口（无模板）”的代码框架落到工程里了，核心分成两层：C++ 侧生成 line 描述并强转，CUDA 侧一条线一个 thread 做压缩+合并+补零。
+
+代码落点
+
+src/cpp/headers/cuda_interface.h
+定义 CudaLineDesc{ start, step }（都是“按元素计”的偏移/步长，不是字节）
+声明 4 个非模板入口：cuda_move_lines_ll / _ull / _ld / _uld
+src/cpp/cuda/cuda_interface.cu
+4 个 __global__ kernel：每个 thread 处理一条线，按你给的线内规则原地写回
+4 个 host wrapper：负责 cudaMalloc/cudaMemcpyAsync/launch/copyback（无模板）
+src/cpp/headers/logic_2048_pm.h
+Logic2048_tm::move(dim, dir) 已实现：
+用 RowMajor 计算 strides
+生成所有线的 CudaLineDesc(start, step)
+把张量数据强转到 4 种固定类型之一的 host buffer
+调用对应 CUDA 入口并回写到 m_data
+move(dim,dir) 的“子操作”如何对应到代码
+
+“获取每条线的下标” → 现在用 CudaLineDesc 描述：start 是该线在扁平数组中的起点 offset，step 是沿 dim 的 stride（dir==Positive 时为负）
+“处理每条线（CUDA 并行）” → kernel 内对该线做一次扫描，完成：
+跳过 0（等价去零压缩）
+相邻相等单次合并（用 prev/has_prev 状态机）
+剩余位置补 0
+关于你要求的 4 种类型
+
+整型部分严格对应：long long / unsigned long long
+浮点部分代码里走的是 double（对应 cuda_move_lines_ld/_uld），原因是 CUDA 设备端对 long double 支持不稳定且 C++ 本身不存在 unsigned long double 这种类型；如果你坚持“必须 long double 表示”，需要你确认目标 CUDA 工具链与精度要求，我再按你的编译环境改成可用的等价方案（例如：host 用 long double，device 用 double 明确降精度，或改为自定义定点/整数指数表示）。
+如果你接下来要做“避免每次 move 都 host<->device 全量拷贝”（把棋盘常驻 GPU、只传 lines/参数），我也可以按当前框架继续往下重构。
+
