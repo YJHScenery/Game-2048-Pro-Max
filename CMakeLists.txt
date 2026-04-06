@@ -40,6 +40,7 @@ set(TEST_SOURCE_FILES
         test/benchmark_logic_tensor_6d.cpp
         test/benchmark_logic_tensor_ndim_template.cpp
         test/random_game_test.cpp
+        test/ai_test.h
 )
 
 set(AI_MODE_FILES
@@ -63,7 +64,7 @@ add_executable(${PROJECT_NAME}
         ${CPP_SOURCE_FILES}
         ${TEST_SOURCE_FILES}
         ${RESOURCE_FILES}
-        ${AI_MODE_FILES}
+        # ${AI_MODE_FILES}
         )
 
 list(TRANSFORM QT_MODULES_LIST PREPEND "Qt::" OUTPUT_VARIABLE QT_MODULES_LIST_WITH_PREFIX)

@@ -13,6 +13,7 @@
 #include <QString>
 #include <QVariant>
 #include <QVariantMap>
+class AITest;
 
 // struct GameData
 // {
@@ -77,9 +78,10 @@ public slots:
 
     void saveData_emitted(int innerIndex);
 
-    QVariantList getScoreInfo_emitted(int innerIndex);
+    [[nodiscard]] QVariantList getScoreInfo_emitted(int innerIndex);
 
-    QVariantList getBoardData_emitted(int innerIndex) const;
+    [[nodiscard]] QVariantList getBoardData_emitted(int innerIndex) const;
+
 signals:
 
     void gameOver();
@@ -125,6 +127,7 @@ private:
     void operate3DAndEmitTrace(const QString &gameMode, int size, int dim, MoveDirection dir);
 
     GameData getDataWithIndex(int index);
+
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 4, 4> m_GameBoard4x4;
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 6, 6> m_GameBoard6x6;
     Logic2048_tm<ArchDynamic, size_t, size_t, 2, 8, 8> m_GameBoard8x8;
@@ -137,5 +140,8 @@ private:
     GameDataManager* m_dataManager;
 
     QList<std::uint64_t> m_hashList{QList<uint64_t>(6)};
+
+    friend class AITest;
+
 };
 #endif // GAME_2048_QUICK_GAME_2048_H

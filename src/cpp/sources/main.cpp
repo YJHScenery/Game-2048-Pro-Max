@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 #include <QQmlContext>
-
+#include "../../test/ai_test.h"
 #include "logic_2048_tmp.h"
 #include "game_2048.h"
 #include <QIcon>
@@ -16,6 +16,7 @@ int main(int argc, char* argv[])
 
     QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
 
+    AITest()();
     // run_random_game_test();
 
     // 创建 Game 对象
