@@ -9,21 +9,8 @@
 #include "logic_2048_tmp.h"
 #include "game_2048.h"
 #include <QIcon>
-
-int runBenchmarks();
-int run_random_game_test();
-void getGPUInformation();
-
 int main(int argc, char* argv[])
 {
-
-    // getGPUInformation();
-
-    if (argc >= 2 && std::string(argv[1]) == "--bench") {
-
-        return runBenchmarks();
-    }
-
     // 创建 QApplication 资源
     const QGuiApplication app(argc, argv);
 
@@ -57,8 +44,6 @@ int main(int argc, char* argv[])
     if (engine.rootObjects().isEmpty()) {
         return -1;
     }
-
-
 
     return QGuiApplication::exec();
 }

@@ -5,7 +5,6 @@
 #ifndef GAME_2048_QUICK_GAME_2048_H
 #define GAME_2048_QUICK_GAME_2048_H
 #include "logic_2048_tmp.h"
-#include "logic_2048_dynamic.h"
 #include "game_data_manager.h"
 
 #include <QObject>
@@ -132,8 +131,6 @@ private:
     Logic2048_tm<ArchDynamic, size_t, size_t, 3, 8, 8, 8> m_GameBoard8x8x8;
 
     QMap<QString, std::pair<int, int>> m_scoreMap{};
-
-    Logic2048Dynamic m_GameBoardDynamic;
 
     GameDataManager* m_dataManager;
 

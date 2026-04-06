@@ -22,8 +22,6 @@
 #include "hash_tools.h"
 #include "basic_dependency.h"
 #include "cpu_interface.h"
-#include "cuda_interface.cuh"
-
 /**
  * @class Logic2048_tm
  * @brief 用于构建 2048 逻辑的底层抽象框架
@@ -296,24 +294,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
     const std::vector<long long> before = buf;
 
-    if constexpr (Arch == ArchDynamic) {
-        if constexpr (Dimension <= 3) {
-            move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
+    move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
                            static_cast<std::size_t>(line_len));
-        }
-        else {
-            cuda_move_lines(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                            static_cast<std::size_t>(line_len), nullptr);
-        }
-    }
-    else if constexpr (Arch == ArchCPU) {
-        move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                       static_cast<std::size_t>(line_len));
-    }
-    else if constexpr (Arch == ArchCUDA) {
-        cuda_move_lines(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                        static_cast<std::size_t>(line_len), nullptr);
-    }
 
     const bool changed{buf != before};
 
@@ -372,20 +354,7 @@ template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeTyp
 requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 std::vector<EqualPair> Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::checkOver()
 {
-    if constexpr (Arch == ArchDynamic) {
-        if constexpr (Dimension <= 2) {
-            return find_equal_cpu<MetaType, Dimension, DimensionSize...>(m_data.data());
-        }
-        else {
-            return cuda_find_equal<MetaType, Dimension, DimensionSize...>(m_data.data());
-        }
-    }
-    else if constexpr (Arch == ArchCUDA) {
-        return cuda_find_equal<MetaType, Dimension, DimensionSize...>(m_data.data());
-    }
-    else {
-        return find_equal_cpu<MetaType, Dimension, DimensionSize...>(m_data.data());
-    }
+    return find_equal_cpu<MetaType, Dimension, DimensionSize...>(m_data.data());
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
