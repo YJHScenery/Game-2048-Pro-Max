@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "game2048-dynamic"
+version = "0.1.0"
+description = "ctypes wrapper for Game_2048_Quick dynamic board DLL"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["game2048_dynamic*"]
