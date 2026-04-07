@@ -474,7 +474,7 @@ ApplicationWindow {
                         spacing: 2
                         Text {
                             Layout.fillWidth: true
-                            text: root.isCustomMode ? "自定义模式" : (root.selectedMode ? ("模式预览 · " + root.selectedMode.title) : "模式预览")
+                            text: root.isCustomMode ? "自定义模式" : (root.selectedMode ? ("棋盘 · " + root.selectedMode.title) : "棋盘")
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
                             color: t.textPrimary
