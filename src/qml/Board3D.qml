@@ -352,10 +352,24 @@ Item {
                     brightness: 1.2
                 }
 
+                // Low-intensity fill from the opposite side to keep back faces readable.
+                DirectionalLight {
+                    eulerRotation.x: 45
+                    eulerRotation.y: -160
+                    brightness: 0.55
+                    color: cTextSecondary
+                }
+
                 PointLight {
                     position: Qt.vector3d(0, 320, 320)
                     brightness: 220
                     color: cAccentBorder
+                }
+
+                PointLight {
+                    position: Qt.vector3d(0, -260, -280)
+                    brightness: 95
+                    color: cTextSecondary
                 }
 
                 Node {
@@ -382,7 +396,7 @@ Item {
 
                     PrincipledMaterial {
                         id: emptyMat
-                        baseColor: cCubeEmpty
+                        baseColor: Qt.lighter(cCubeEmpty, 1.28)
                         roughness: 0.55
                         metalness: 0.0
                         opacity: 0.70
