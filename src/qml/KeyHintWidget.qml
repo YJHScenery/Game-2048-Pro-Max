@@ -5,6 +5,8 @@ import QtQuick3D
 Item {
     id: root
 
+    property var themeController: null
+
     // 2 for 2D (WASD), 3 for 3D (WASD+QE)
     property int dims: 2
 
@@ -27,15 +29,15 @@ Item {
     implicitWidth: 240
     implicitHeight: 56
 
-    readonly property color panelColor: "#111827"
-    readonly property color panelBorder: "#2a3446"
-    readonly property color textMain: "#e5e7eb"
-    readonly property color textSub: "#9ca3af"
+    readonly property color panelColor: themeController ? themeController.surfaceStrong : "#111827"
+    readonly property color panelBorder: themeController ? themeController.border : "#2a3446"
+    readonly property color textMain: themeController ? themeController.textPrimary : "#e5e7eb"
+    readonly property color textSub: themeController ? themeController.textMuted : "#9ca3af"
 
     // 3D hint color mapping (keep transparency)
-    readonly property color hintXColor: "#ef4444" // AD / X
-    readonly property color hintYColor: "#3b82f6" // SW / Y
-    readonly property color hintZColor: "#22c55e" // QE / Z
+    readonly property color hintXColor: themeController ? themeController.axisX : "#ef4444" // AD / X
+    readonly property color hintYColor: themeController ? themeController.axisY : "#3b82f6" // SW / Y
+    readonly property color hintZColor: themeController ? themeController.axisZ : "#22c55e" // QE / Z
     readonly property real hintKeyFillAlpha: 0.22
     readonly property real hintAxisAlpha: 0.8
 
@@ -219,7 +221,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 10
-                color: "#0f172a"
+                color: themeController ? themeController.surface : "#0f172a"
                 border.color: root.panelBorder
                 border.width: 1
             }
@@ -237,7 +239,7 @@ Item {
                     width: parent.width
                     height: 2
                     radius: 1
-                    color: "#cbd5e1"
+                    color: themeController ? themeController.textSecondary : "#cbd5e1"
                     opacity: 0.8
                 }
 
@@ -247,7 +249,7 @@ Item {
                     width: 2
                     height: parent.height
                     radius: 1
-                    color: "#cbd5e1"
+                    color: themeController ? themeController.textSecondary : "#cbd5e1"
                     opacity: 0.8
                 }
 
@@ -315,7 +317,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: 10
-                color: "#0f172a"
+                color: themeController ? themeController.surface : "#0f172a"
                 border.color: root.panelBorder
                 border.width: 1
             }

@@ -7,6 +7,8 @@ import QtQuick.Window
 Popup {
     id: root
 
+    property var themeController: null
+
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -21,11 +23,11 @@ Popup {
     readonly property int maxScore: (hostWindow && hostWindow.maxScore !== undefined) ? hostWindow.maxScore : 0
 
     // Match the in-game dark palette for visual consistency.
-    readonly property color panelColor: "#111827"
-    readonly property color panelBorder: "#2a3446"
-    readonly property color titleColor: "#e5e7eb"
-    readonly property color subColor: "#9ca3af"
-    readonly property color accentColor: "#a78bfa"
+    readonly property color panelColor: themeController ? themeController.surfaceStrong : "#111827"
+    readonly property color panelBorder: themeController ? themeController.border : "#2a3446"
+    readonly property color titleColor: themeController ? themeController.textPrimary : "#e5e7eb"
+    readonly property color subColor: themeController ? themeController.textMuted : "#9ca3af"
+    readonly property color accentColor: themeController ? themeController.accentBorder : "#a78bfa"
 
     background: Rectangle {
         radius: 16
@@ -70,7 +72,7 @@ Popup {
             Layout.topMargin: 4
             height: 88
             radius: 12
-            color: "#0f172a"
+            color: themeController ? themeController.surface : "#0f172a"
             border.color: root.panelBorder
             border.width: 1
 
@@ -116,7 +118,7 @@ Popup {
             Button {
                 text: "我知道了"
                 highlighted: true
-                Material.accent: Material.DeepPurple
+                Material.accent: themeController && themeController.isDark ? Material.DeepPurple : Material.Blue
                 Accessible.name: "关闭游戏结束对话框"
                 onClicked: root.close()
             }

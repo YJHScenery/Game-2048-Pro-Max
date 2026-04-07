@@ -7,6 +7,22 @@ import QtQuick3D
 Item {
     id: root
 
+    property var themeController: null
+    readonly property color cSurfaceStrong: themeController ? themeController.surfaceStrong : "#111827"
+    readonly property color cSurface: themeController ? themeController.surface : "#0f172a"
+    readonly property color cSurfaceAlt: themeController ? themeController.surfaceAlt : "#0b1220"
+    readonly property color cBorder: themeController ? themeController.border : "#2a3446"
+    readonly property color cBorderStrong: themeController ? themeController.borderStrong : "#22304a"
+    readonly property color cTextPrimary: themeController ? themeController.textPrimary : "#e5e7eb"
+    readonly property color cTextSecondary: themeController ? themeController.textSecondary : "#cbd5e1"
+    readonly property color cTextMuted: themeController ? themeController.textMuted : "#9ca3af"
+    readonly property color cAccent: themeController ? themeController.accent : "#6d28d9"
+    readonly property color cAccentSoft: themeController ? themeController.accentSoft : "#2e1065"
+    readonly property color cAccentBorder: themeController ? themeController.accentBorder : "#a78bfa"
+    readonly property color cBoardSceneBg: themeController ? themeController.boardSceneBg : "#0b1220"
+    readonly property color cCubeEmpty: themeController ? themeController.cubeEmpty : "#111827"
+    readonly property color cCubeFilled: themeController ? themeController.cubeFilled : "#6d28d9"
+
     // Expose the active 3D camera so external UI (e.g. key/axis hint) can follow the view.
     // NOTE: avoid naming it 'camera' to prevent clashing with the internal id 'camera'.
     property alias viewCamera: camera
@@ -227,9 +243,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 18
-        color: "#0b1220"
+        color: cSurfaceAlt
         border.width: 1
-        border.color: "#22304a"
+        border.color: cBorderStrong
     }
 
     ColumnLayout {
@@ -245,8 +261,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
                 radius: 12
-                color: "#0f172a"
-                border.color: "#2a3446"
+                color: cSurface
+                border.color: cBorder
                 border.width: 1
                 RowLayout {
                     anchors.fill: parent
@@ -256,20 +272,20 @@ Item {
                         text: "3D 立方体"
                         font.pixelSize: 14
                         font.weight: Font.DemiBold
-                        color: "#e5e7eb"
+                        color: cTextPrimary
                     }
                     Text {
                         Layout.fillWidth: true
                         text: safeSize + "×" + safeSize + "×" + safeDepth
                         font.pixelSize: 12
-                        color: "#9ca3af"
+                        color: cTextMuted
                         elide: Text.ElideRight
                     }
                     Rectangle {
                         Layout.preferredHeight: 22
                         radius: 11
-                        color: "#111827"
-                        border.color: "#2a3446"
+                        color: cSurfaceStrong
+                        border.color: cBorder
                         border.width: 1
                         Layout.preferredWidth: hint.implicitWidth + 16
                         Text {
@@ -277,7 +293,7 @@ Item {
                             anchors.centerIn: parent
                             text: "拖拽旋转 / 滚轮缩放 / WASD+QE"
                             font.pixelSize: 11
-                            color: "#cbd5e1"
+                            color: cTextSecondary
                         }
                     }
                 }
@@ -317,7 +333,7 @@ Item {
                 anchors.fill: parent
 
                 environment: SceneEnvironment {
-                    clearColor: "#0b1220"
+                    clearColor: cBoardSceneBg
                     backgroundMode: SceneEnvironment.Color
                     antialiasingMode: SceneEnvironment.MSAA
                     antialiasingQuality: SceneEnvironment.High
@@ -339,7 +355,7 @@ Item {
                 PointLight {
                     position: Qt.vector3d(0, 320, 320)
                     brightness: 220
-                    color: "#a78bfa"
+                    color: cAccentBorder
                 }
 
                 Node {
@@ -366,7 +382,7 @@ Item {
 
                     PrincipledMaterial {
                         id: emptyMat
-                        baseColor: "#111827"
+                        baseColor: cCubeEmpty
                         roughness: 0.55
                         metalness: 0.0
                         opacity: 0.70
@@ -374,7 +390,7 @@ Item {
 
                     PrincipledMaterial {
                         id: filledMat
-                        baseColor: "#6d28d9"
+                        baseColor: cCubeFilled
                         roughness: 0.40
                         metalness: 0.0
                         opacity: 0.88
@@ -426,15 +442,15 @@ Item {
                                                     width: 128
                                                     height: 128
                                                     radius: 24
-                                                    color: "#0f172a"
-                                                    border.color: "#a78bfa"
+                                                    color: cSurface
+                                                    border.color: cAccentBorder
                                                     border.width: 2
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: v
                                                         font.pixelSize: 56
                                                         font.weight: Font.DemiBold
-                                                        color: "#e5e7eb"
+                                                        color: cTextPrimary
                                                     }
                                                 }
                                             }
@@ -490,15 +506,15 @@ Item {
                                                     width: 128
                                                     height: 128
                                                     radius: 24
-                                                    color: "#0f172a"
-                                                    border.color: "#a78bfa"
+                                                    color: cSurface
+                                                    border.color: cAccentBorder
                                                     border.width: 2
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: (isMerged && isPrimary) ? mergeValue : value0
                                                         font.pixelSize: 56
                                                         font.weight: Font.DemiBold
-                                                        color: "#e5e7eb"
+                                                        color: cTextPrimary
                                                     }
                                                 }
                                             }
@@ -571,15 +587,15 @@ Item {
                                                 width: 128
                                                 height: 128
                                                 radius: 24
-                                                color: "#0f172a"
-                                                border.color: "#a78bfa"
+                                                color: cSurface
+                                                border.color: cAccentBorder
                                                 border.width: 2
                                                 Text {
                                                     anchors.centerIn: parent
                                                     text: root.spawnValue
                                                     font.pixelSize: 56
                                                     font.weight: Font.DemiBold
-                                                    color: "#e5e7eb"
+                                                    color: cTextPrimary
                                                 }
                                             }
                                         }
@@ -646,8 +662,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
                 radius: 14
-                color: "#0f172a"
-                border.color: "#2a3446"
+                color: cSurface
+                border.color: cBorder
                 border.width: 1
 
                 Text {
@@ -655,7 +671,7 @@ Item {
                     anchors.centerIn: parent
                     text: "Last move: —"
                     font.pixelSize: 12
-                    color: "#9ca3af"
+                    color: cTextMuted
                 }
             }
 
@@ -665,15 +681,15 @@ Item {
                 Layout.preferredHeight: 48
                 radius: 14
                 border.width: 1
-                border.color: resetViewBtn.pressed ? "#a78bfa" : (resetViewBtn.hovered ? "#8b5cf6" : "#2a3446")
+                border.color: resetViewBtn.pressed ? cAccentBorder : (resetViewBtn.hovered ? cAccent : cBorder)
                 gradient: Gradient {
                     GradientStop {
                         position: 0.0
-                        color: resetViewBtn.pressed ? "#2a1f47" : (resetViewBtn.hovered ? "#1a2740" : "#0f172a")
+                        color: resetViewBtn.pressed ? cAccentSoft : (resetViewBtn.hovered ? cSurfaceAlt : cSurface)
                     }
                     GradientStop {
                         position: 1.0
-                        color: resetViewBtn.pressed ? "#201635" : (resetViewBtn.hovered ? "#111a2f" : "#0b1220")
+                        color: resetViewBtn.pressed ? cAccent : (resetViewBtn.hovered ? cSurface : cSurfaceAlt)
                     }
                 }
 
@@ -699,7 +715,7 @@ Item {
                     text: "重置视角"
                     font.pixelSize: 13
                     font.weight: Font.Medium
-                    color: "#e5e7eb"
+                    color: cTextPrimary
                 }
 
                 Keys.onReturnPressed: {

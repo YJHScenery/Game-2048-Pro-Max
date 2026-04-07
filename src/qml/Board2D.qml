@@ -7,6 +7,20 @@ Item {
     id: root
     focus: true
 
+    property var themeController: null
+    readonly property color cSurfaceStrong: themeController ? themeController.surfaceStrong : "#111827"
+    readonly property color cSurface: themeController ? themeController.surface : "#0f172a"
+    readonly property color cSurfaceAlt: themeController ? themeController.surfaceAlt : "#0b1220"
+    readonly property color cBorder: themeController ? themeController.border : "#2a3446"
+    readonly property color cBorderStrong: themeController ? themeController.borderStrong : "#22304a"
+    readonly property color cTextPrimary: themeController ? themeController.textPrimary : "#e5e7eb"
+    readonly property color cTextSecondary: themeController ? themeController.textSecondary : "#cbd5e1"
+    readonly property color cTextMuted: themeController ? themeController.textMuted : "#9ca3af"
+    readonly property color cBoardCellBg: themeController ? themeController.boardCellBg : "#111827"
+    readonly property color cBoardCellTop: themeController ? themeController.boardCellTop : "#0f172a"
+    readonly property color cBoardCellBottom: themeController ? themeController.boardCellBottom : "#0b1220"
+    readonly property color cBoardCellInner: themeController ? themeController.boardCellInner : "#0b1220"
+
     Connections {
         target: game2048 // C++ 端游戏对象
 
@@ -260,9 +274,9 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 18
-        color: "#0b1220"
+        color: cSurfaceAlt
         border.width: 1
-        border.color: "#22304a"
+        border.color: cBorderStrong
     }
 
     ColumnLayout {
@@ -278,8 +292,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
                 radius: 12
-                color: "#0f172a"
-                border.color: "#2a3446"
+                color: cSurface
+                border.color: cBorder
                 border.width: 1
                 RowLayout {
                     anchors.fill: parent
@@ -289,20 +303,20 @@ Item {
                         text: "2D 棋盘"
                         font.pixelSize: 14
                         font.weight: Font.DemiBold
-                        color: "#e5e7eb"
+                        color: cTextPrimary
                     }
                     Text {
                         Layout.fillWidth: true
                         text: rows + "×" + columns
                         font.pixelSize: 12
-                        color: "#9ca3af"
+                        color: cTextMuted
                         elide: Text.ElideRight
                     }
                     Rectangle {
                         Layout.preferredHeight: 22
                         radius: 11
-                        color: "#111827"
-                        border.color: "#2a3446"
+                        color: cSurfaceStrong
+                        border.color: cBorder
                         border.width: 1
                         Layout.preferredWidth: hint.implicitWidth + 16
                         Text {
@@ -310,7 +324,7 @@ Item {
                             anchors.centerIn: parent
                             text: "WASD / ↑↓←→"
                             font.pixelSize: 11
-                            color: "#cbd5e1"
+                            color: cTextSecondary
                         }
                     }
                 }
@@ -352,9 +366,9 @@ Item {
                             width: center.cellSize
                             height: center.cellSize
                             radius: Math.max(8, width * 0.18)
-                            color: "#111827"
+                            color: cBoardCellBg
                             border.width: 1
-                            border.color: "#2a3446"
+                            border.color: cBorder
 
                             Rectangle {
                                 anchors.fill: parent
@@ -362,11 +376,11 @@ Item {
                                 gradient: Gradient {
                                     GradientStop {
                                         position: 0.0
-                                        color: "#0f172a"
+                                        color: cBoardCellTop
                                     }
                                     GradientStop {
                                         position: 1.0
-                                        color: "#0b1220"
+                                        color: cBoardCellBottom
                                     }
                                 }
                                 opacity: 0.95
@@ -376,9 +390,9 @@ Item {
                                 anchors.fill: parent
                                 anchors.margins: Math.max(6, Math.floor(width * 0.14))
                                 radius: Math.max(6, parent.radius - 4)
-                                color: "#0b1220"
+                                color: cBoardCellInner
                                 border.width: 1
-                                border.color: "#22304a"
+                                border.color: cBorderStrong
                                 opacity: 0.65
                             }
 
@@ -390,7 +404,7 @@ Item {
                                 }
                                 font.pixelSize: Math.max(24, Math.floor(width * 0.34))
                                 font.weight: Font.DemiBold
-                                color: "#e5e7eb"
+                                color: cTextPrimary
                                 opacity: root.isAnimating ? 0 : 1
                             }
                         }
@@ -409,9 +423,9 @@ Item {
                             width: center.cellSize
                             height: center.cellSize
                             radius: Math.max(8, width * 0.18)
-                            color: "#111827"
+                            color: cBoardCellBg
                             border.width: 1
-                            border.color: "#2a3446"
+                            border.color: cBorder
                             antialiasing: true
 
                             property int fromIndex: Number(modelData.from)
@@ -436,11 +450,11 @@ Item {
                                 gradient: Gradient {
                                     GradientStop {
                                         position: 0.0
-                                        color: "#0f172a"
+                                        color: cBoardCellTop
                                     }
                                     GradientStop {
                                         position: 1.0
-                                        color: "#0b1220"
+                                        color: cBoardCellBottom
                                     }
                                 }
                                 opacity: 0.95
@@ -450,9 +464,9 @@ Item {
                                 anchors.fill: parent
                                 anchors.margins: Math.max(6, Math.floor(width * 0.14))
                                 radius: Math.max(6, parent.radius - 4)
-                                color: "#0b1220"
+                                color: cBoardCellInner
                                 border.width: 1
-                                border.color: "#22304a"
+                                border.color: cBorderStrong
                                 opacity: 0.65
                             }
 
@@ -461,7 +475,7 @@ Item {
                                 text: (merged && primary && mergeValue > 0) ? mergeValue : startValue
                                 font.pixelSize: Math.max(12, Math.floor(width * 0.34))
                                 font.weight: Font.DemiBold
-                                color: "#e5e7eb"
+                                color: cTextPrimary
                             }
 
                             // 并行动画
@@ -534,9 +548,9 @@ Item {
                         width: center.cellSize
                         height: center.cellSize
                         radius: Math.max(8, width * 0.18)
-                        color: "#111827"
+                        color: cBoardCellBg
                         border.width: 1
-                        border.color: "#2a3446"
+                        border.color: cBorder
                         property int index: -1
                         property int value: 0
                         x: (index >= 0) ? root.posForIndex(index).x : 0
@@ -550,11 +564,11 @@ Item {
                             gradient: Gradient {
                                 GradientStop {
                                     position: 0.0
-                                    color: "#0f172a"
+                                    color: cBoardCellTop
                                 }
                                 GradientStop {
                                     position: 1.0
-                                    color: "#0b1220"
+                                    color: cBoardCellBottom
                                 }
                             }
                             opacity: 0.95
@@ -565,7 +579,7 @@ Item {
                             text: spawnPop.value > 0 ? spawnPop.value : ""
                             font.pixelSize: Math.max(12, Math.floor(width * 0.34))
                             font.weight: Font.DemiBold
-                            color: "#e5e7eb"
+                            color: cTextPrimary
                         }
                     }
 
@@ -620,8 +634,8 @@ Item {
                     width: Math.min(parent.width, 260)
                     height: 48
                     radius: 14
-                    color: "#0f172a"
-                    border.color: "#2a3446"
+                    color: cSurface
+                    border.color: cBorder
                     border.width: 1
 
                     Text {
@@ -629,7 +643,7 @@ Item {
                         anchors.centerIn: parent
                         text: "Last move: —"
                         font.pixelSize: 12
-                        color: "#9ca3af"
+                        color: cTextMuted
                     }
                 }
             }

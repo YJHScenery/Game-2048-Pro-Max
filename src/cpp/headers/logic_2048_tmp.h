@@ -37,7 +37,7 @@
 enum class MoveDirection : std::int8_t
 {
     Negative = -1, // 沿此维度下索引减小方向
-    Positive = 1, // 沿此维度下索引增大方向
+    Positive = 1,  // 沿此维度下索引增大方向
 };
 
 //! @brief 用于强制指定计算平台，便于进行性能测试。
@@ -58,9 +58,7 @@ concept ValidTensorSize =
     sizeof...(Sizes) == nDim &&
     ((Sizes != 0) && ...);
 
-
-template <std::uint64_t Arch, typename MetaType = size_t, ValidSizeType SizeType = size_t, SizeType Dimension = 2, SizeType
-          ... DimensionSize>
+template <std::uint64_t Arch, typename MetaType = size_t, ValidSizeType SizeType = size_t, SizeType Dimension = 2, SizeType... DimensionSize>
     requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 class Logic2048_tm
 {
@@ -107,15 +105,15 @@ public:
     std::vector<EqualPair> checkOver();
 
     template <typename Val_T, template <typename, typename...> typename Container>
-    void setData(const Container<Val_T>& ctn);
+    void setData(const Container<Val_T> &ctn);
 
     struct TileMoveTrace
     {
-        size_type_ from{}; // flat index
-        size_type_ to{}; // flat index
+        size_type_ from{};  // flat index
+        size_type_ to{};    // flat index
         meta_type_ value{}; // value before move
-        bool merged{}; // whether this source tile participates in a merge
-        bool primary{}; // for merged pair: the first tile (kept) vs second (consumed)
+        bool merged{};      // whether this source tile participates in a merge
+        bool primary{};     // for merged pair: the first tile (kept) vs second (consumed)
     };
 
     struct TileMergeTrace
@@ -175,16 +173,16 @@ public:
     void operate(size_type_ dim, MoveDirection dir);
 
     template <typename OutputStream>
-    void outputData(OutputStream& out);
+    void outputData(OutputStream &out);
 
     [[nodiscard]] data_mesh_type_ getData() { return m_data; }
 
-    [[nodiscard]] const data_mesh_type_& getDataRef() const { return m_data; }
+    [[nodiscard]] const data_mesh_type_ &getDataRef() const { return m_data; }
 
     constexpr static size_mesh_type_ getSizeArray() { return sizes_; }
 
     template <typename T, typename OutputStream, size_t NDims>
-    static void printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor, OutputStream& out, int indent = 0);
+    static void printTensor(const Eigen::Tensor<T, NDims, Eigen::RowMajor> &tensor, OutputStream &out, int indent = 0);
 
 private:
     struct AiSearchResult2D
@@ -195,32 +193,31 @@ private:
 
     [[nodiscard]] static int chooseDepth2D(size_type_ size);
 
-    [[nodiscard]] static bool mapMoveToDimDir2D(int move, size_type_& dim, MoveDirection& dir);
+    [[nodiscard]] static bool mapMoveToDimDir2D(int move, size_type_ &dim, MoveDirection &dir);
 
-    [[nodiscard]] static bool applyMoveNoSpawn2D(Logic2048_tm& board, int move);
+    [[nodiscard]] static bool applyMoveNoSpawn2D(Logic2048_tm &board, int move);
 
-    [[nodiscard]] static bool setFlatCell2D(Logic2048_tm& board, size_type_ index, meta_type_ value);
+    [[nodiscard]] static bool setFlatCell2D(Logic2048_tm &board, size_type_ index, meta_type_ value);
 
-    [[nodiscard]] static std::vector<size_type_> freeCells2D(const Logic2048_tm& board);
+    [[nodiscard]] static std::vector<size_type_> freeCells2D(const Logic2048_tm &board);
 
-    [[nodiscard]] static float calculateEmpty2D(const std::vector<meta_type_>& data);
+    [[nodiscard]] static float calculateEmpty2D(const std::vector<meta_type_> &data);
 
-    [[nodiscard]] static float calculateMaxNum2D(const std::vector<meta_type_>& data);
+    [[nodiscard]] static float calculateMaxNum2D(const std::vector<meta_type_> &data);
 
-    [[nodiscard]] static float calculateSmoothness2D(const std::vector<meta_type_>& data, size_type_ size);
+    [[nodiscard]] static float calculateSmoothness2D(const std::vector<meta_type_> &data, size_type_ size);
 
-    [[nodiscard]] static float calculateMonotonicity2D(const std::vector<meta_type_>& data, size_type_ size);
-    
-    static void markIsland2D(const std::vector<meta_type_>& data,
+    [[nodiscard]] static float calculateMonotonicity2D(const std::vector<meta_type_> &data, size_type_ size);
+    static void markIsland2D(const std::vector<meta_type_> &data,
                              int size,
                              int x,
                              int y,
                              meta_type_ value,
-                             std::vector<std::uint8_t>& marked);
+                             std::vector<std::uint8_t> &marked);
 
-    [[nodiscard]] static float calculateIslands2D(const std::vector<meta_type_>& data, size_type_ size);
+    [[nodiscard]] static float calculateIslands2D(const std::vector<meta_type_> &data, size_type_ size);
 
-    [[nodiscard]] static float calculateEvaluation2D(const std::vector<meta_type_>& data, size_type_ size);
+    [[nodiscard]] static float calculateEvaluation2D(const std::vector<meta_type_> &data, size_type_ size);
 
     [[nodiscard]] static AiSearchResult2D searchBest2D(Logic2048_tm board,
                                                        int depth,
@@ -233,7 +230,7 @@ private:
 
     // 在空位填充一个数字
     bool spawnRandomTile();
-    bool spawnRandomTile(SpawnTrace& out);
+    bool spawnRandomTile(SpawnTrace &out);
 
     //! 随机数生成，90% 2，10% 4
     meta_type_ sampleNewTileValue();
@@ -253,7 +250,7 @@ private:
      */
     template <template <typename Val_T, typename...> typename Container>
 
-    bool setRandomLocationValue(size_t numCount, const Container<meta_type_>& presetValues);
+    bool setRandomLocationValue(size_t numCount, const Container<meta_type_> &presetValues);
 
     constexpr static size_mesh_type_ sizes_{DimensionSize...};
 
@@ -266,17 +263,16 @@ private:
     std::mt19937_64 m_rng{std::random_device{}()};
 };
 
-
-
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 constexpr auto Logic2048_tm<
     Arch, MetaType, SizeType, Dimension, DimensionSize...>::buildStrides() -> std_size_mesh_type_
 {
     {
         std_size_mesh_type_ strides{};
         strides[Dimension - 1] = 1;
-        for (size_type_ d = Dimension - 1; d-- > 0;) {
+        for (size_type_ d = Dimension - 1; d-- > 0;)
+        {
             strides[d] = strides[d + 1] * sizes_[d + 1];
         }
         return strides;
@@ -284,7 +280,7 @@ constexpr auto Logic2048_tm<
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operate(
     size_type_ dim, const MoveDirection dir)
 {
@@ -292,7 +288,7 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateInternal(
     size_type_ dim, const MoveDirection dir)
 {
@@ -310,9 +306,9 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     const size_type_ line_count = total_elems / line_len;
     const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
     const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
-    ((dir == MoveDirection::Negative)
-         ? static_cast<std::int64_t>(1)
-         : static_cast<std::int64_t>(-1));
+                              ((dir == MoveDirection::Negative)
+                                   ? static_cast<std::int64_t>(1)
+                                   : static_cast<std::int64_t>(-1));
 
     std::vector<StandardLineDesc> lines;
     lines.reserve(static_cast<std::size_t>(line_count));
@@ -320,7 +316,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     std_size_mesh_type_ idx{};
     idx[dim] = start_index;
 
-    while (true) {
+    while (true)
+    {
         std::uint64_t offset = 0;
         for (size_type_ d = 0; d < Dimension; ++d)
             offset += static_cast<std::uint64_t>((idx.at(d) ? idx.at(d) : 0) * strides_[d]);
@@ -329,7 +326,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
         // odometer increment on all dims except dim
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
-        for (; carry_dim >= 0; --carry_dim) {
+        for (; carry_dim >= 0; --carry_dim)
+        {
             const auto d = static_cast<size_type_>(carry_dim);
             if (d == dim)
                 continue;
@@ -346,7 +344,7 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     if (lines.size() != static_cast<std::size_t>(line_count))
         return false;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     std::vector<long long> buf(total_elems);
     for (size_type_ i = 0; i < total_elems; ++i)
@@ -355,7 +353,7 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     const std::vector<long long> before = buf;
 
     move_lines_cpu(buf.data(), lines.data(), static_cast<std::size_t>(line_count),
-                           static_cast<std::size_t>(line_len));
+                   static_cast<std::size_t>(line_len));
 
     const bool changed{buf != before};
 
@@ -366,22 +364,23 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::hash_type_ Logic2048_tm<Arch, MetaType,
-    SizeType, Dimension, DimensionSize...>::getHash()
+                                                                                             SizeType, Dimension, DimensionSize...>::getHash()
 {
     std::size_t seed = 0;
 
     // 1. 混合维度信息（防止不同形状但内存数据巧合相同的张量哈希冲突）
     // 例如：1x4 和 2x2 如果数据一样，不加维度哈希可能会冲突
-    for (int i = 0; i < m_data.rank(); ++i) {
+    for (int i = 0; i < m_data.rank(); ++i)
+    {
         const auto dimValue = m_data.dimension(i);
-        hashCombineBytes(seed, reinterpret_cast<const unsigned char*>(&dimValue), sizeof(dimValue));
+        hashCombineBytes(seed, reinterpret_cast<const unsigned char *>(&dimValue), sizeof(dimValue));
     }
 
     // 2. 混合数据内容
     // 直接对内存块进行哈希，效率最高
-    const auto dataPtr = reinterpret_cast<const unsigned char*>(m_data.data());
+    const auto dataPtr = reinterpret_cast<const unsigned char *>(m_data.data());
     const std::size_t byteSize = m_data.size() * sizeof(typename data_mesh_type_::Scalar);
 
     hashCombineBytes(seed, dataPtr, byteSize);
@@ -390,7 +389,7 @@ Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::hash_type_ 
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::resetAndSeed(
     const std::size_t initialTileCount)
 {
@@ -400,7 +399,7 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::resetA
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawn(
     size_type_ dim, const MoveDirection dir)
 {
@@ -411,40 +410,45 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 std::vector<EqualPair> Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::checkOver()
 {
     return find_equal_cpu<MetaType, Dimension, DimensionSize...>(m_data.data());
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 template <typename Val_T, template <typename, typename...> class Container>
-void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setData(const Container<Val_T>& ctn)
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setData(const Container<Val_T> &ctn)
 {
     typename std::remove_cvref_t<decltype(ctn)>::size_type ctnSize{ctn.size()};
-    if (ctnSize != static_cast<decltype(ctnSize)>(total_elems_)) {
+    if (ctnSize != static_cast<decltype(ctnSize)>(total_elems_))
+    {
         return;
     }
 
-    if constexpr (std::is_same_v<std::remove_cv_t<Val_T>, meta_type_>) {
+    if constexpr (std::is_same_v<std::remove_cv_t<Val_T>, meta_type_>)
+    {
         using const_data_mesh_type_ = Eigen::Tensor<const meta_type_, Dimension, Eigen::RowMajor, size_type_>;
         const Eigen::TensorMap<const const_data_mesh_type_> mapped(ctn.data(), DimensionSize...);
         m_data = mapped;
     }
-    else {
+    else
+    {
         // Fallback: element-wise copy when the source container's value type differs.
-        const auto* ctnData = ctn.data();
-        if (total_elems_ != 0 && ctnData == nullptr) {
+        const auto *ctnData = ctn.data();
+        if (total_elems_ != 0 && ctnData == nullptr)
+        {
             return;
         }
 
-        const meta_type_* src = nullptr;
+        const meta_type_ *src = nullptr;
         std::vector<meta_type_> tmp;
         tmp.reserve(static_cast<std::size_t>(total_elems_));
-        for (size_type_ i = 0; i < total_elems_; ++i) {
+        for (size_type_ i = 0; i < total_elems_; ++i)
+        {
             tmp.push_back(static_cast<meta_type_>(
-            ctnData[static_cast<typename std::remove_cvref_t<decltype(ctn)>::size_type>(i)]));
+                ctnData[static_cast<typename std::remove_cvref_t<decltype(ctn)>::size_type>(i)]));
         }
         src = tmp.data();
 
@@ -455,7 +459,7 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setDat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateAndSpawnTrace(
     size_type_ dim, const MoveDirection dir) -> MoveTrace
 {
@@ -475,9 +479,9 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     const size_type_ line_count = total_elems / line_len;
     const size_type_ start_index = (dir == MoveDirection::Negative) ? 0 : (line_len - 1);
     const std::int64_t step = static_cast<std::int64_t>(strides_[dim]) *
-    ((dir == MoveDirection::Negative)
-         ? static_cast<std::int64_t>(1)
-         : static_cast<std::int64_t>(-1));
+                              ((dir == MoveDirection::Negative)
+                                   ? static_cast<std::int64_t>(1)
+                                   : static_cast<std::int64_t>(-1));
 
     std::vector<StandardLineDesc> lines;
     lines.reserve(static_cast<std::size_t>(line_count));
@@ -485,7 +489,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     std_size_mesh_type_ idx{};
     idx[dim] = start_index;
 
-    while (true) {
+    while (true)
+    {
         std::uint64_t offset = 0;
         for (size_type_ d = 0; d < Dimension; ++d)
             offset += static_cast<std::uint64_t>(idx[d] * strides_[d]);
@@ -494,7 +499,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 
         // odometer increment on all dims except dim
         std::int64_t carry_dim = static_cast<std::int64_t>(Dimension) - 1;
-        for (; carry_dim >= 0; --carry_dim) {
+        for (; carry_dim >= 0; --carry_dim)
+        {
             const auto d = static_cast<size_type_>(carry_dim);
             if (d == dim)
                 continue;
@@ -511,7 +517,7 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     if (lines.size() != static_cast<std::size_t>(line_count))
         return trace;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     // operateInternal 当前使用 long long 作为统一缓冲；trace 也沿用以保持一致。
     std::vector<long long> buf(total_elems);
@@ -523,7 +529,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     trace.moves.reserve(static_cast<std::size_t>(total_elems));
     trace.merges.reserve(static_cast<std::size_t>(total_elems / 2));
 
-    for (std::size_t line_id = 0; line_id < static_cast<std::size_t>(line_count); ++line_id) {
+    for (std::size_t line_id = 0; line_id < static_cast<std::size_t>(line_count); ++line_id)
+    {
         const StandardLineDesc desc{lines[line_id]};
         const std::uint64_t base{desc.start};
         const std::int64_t lstep{desc.step};
@@ -537,7 +544,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
         std::vector<ReadTile> readTiles;
         readTiles.reserve(static_cast<std::size_t>(line_len));
 
-        for (size_type_ read = 0; read < line_len; ++read) {
+        for (size_type_ read = 0; read < line_len; ++read)
+        {
             const std::int64_t pos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(read) * lstep;
             const auto ipos = static_cast<size_type_>(pos);
             const long long v = before[ipos];
@@ -550,14 +558,17 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
         ReadTile prev{};
         size_type_ write = 0;
 
-        for (const auto& t : readTiles) {
-            if (!has_prev) {
+        for (const auto &t : readTiles)
+        {
+            if (!has_prev)
+            {
                 prev = t;
                 has_prev = true;
                 continue;
             }
 
-            if (t.value == prev.value) {
+            if (t.value == prev.value)
+            {
                 const long long merged = prev.value + t.value;
                 const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
                 const auto iwpos = static_cast<size_type_>(wpos);
@@ -570,7 +581,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
                 ++write;
                 has_prev = false;
             }
-            else {
+            else
+            {
                 const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
                 const auto iwpos = static_cast<size_type_>(wpos);
                 buf[iwpos] = prev.value;
@@ -582,7 +594,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
             }
         }
 
-        if (has_prev) {
+        if (has_prev)
+        {
             const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(write) * lstep;
             const auto iwpos = static_cast<size_type_>(wpos);
             buf[iwpos] = prev.value;
@@ -590,7 +603,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
             ++write;
         }
 
-        for (size_type_ i = write; i < line_len; ++i) {
+        for (size_type_ i = write; i < line_len; ++i)
+        {
             const std::int64_t wpos = static_cast<std::int64_t>(base) + static_cast<std::int64_t>(i) * lstep;
             const auto iwpos = static_cast<size_type_>(wpos);
             buf[iwpos] = 0;
@@ -601,7 +615,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
     for (size_type_ i = 0; i < total_elems; ++i)
         raw[i] = static_cast<meta_type_>(buf[i]);
 
-    if (trace.changed) {
+    if (trace.changed)
+    {
         SpawnTrace s;
         if (spawnRandomTile(s))
             trace.spawn = s;
@@ -611,18 +626,19 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::flatData() const -> std::vector<meta_type_>
 {
-    const meta_type_* raw = m_data.data();
+    const meta_type_ *raw = m_data.data();
     return std::vector<meta_type_>(raw, raw + total_elems_);
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 int Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::chooseDepth2D(const size_type_ size)
 {
-    switch (static_cast<int>(size)) {
+    switch (static_cast<int>(size))
+    {
     case 4:
         return 4;
     case 6:
@@ -635,13 +651,14 @@ int Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::chooseD
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::mapMoveToDimDir2D(
     const int move,
-    size_type_& dim,
-    MoveDirection& dir)
+    size_type_ &dim,
+    MoveDirection &dir)
 {
-    switch (move) {
+    switch (move)
+    {
     case 0: // left
         dim = 1;
         dir = MoveDirection::Negative;
@@ -664,9 +681,9 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::mapMov
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::applyMoveNoSpawn2D(
-    Logic2048_tm& board,
+    Logic2048_tm &board,
     const int move)
 {
     size_type_ dim = 0;
@@ -680,9 +697,9 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::applyM
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setFlatCell2D(
-    Logic2048_tm& board,
+    Logic2048_tm &board,
     const size_type_ index,
     const meta_type_ value)
 {
@@ -695,14 +712,15 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setFla
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 std::vector<SizeType> Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::freeCells2D(
-    const Logic2048_tm& board)
+    const Logic2048_tm &board)
 {
     const auto data = board.flatData();
     std::vector<size_type_> out;
     out.reserve(data.size());
-    for (size_type_ i = 0; i < static_cast<size_type_>(data.size()); ++i) {
+    for (size_type_ i = 0; i < static_cast<size_type_>(data.size()); ++i)
+    {
         if (data[i] == static_cast<meta_type_>(0))
             out.push_back(i);
     }
@@ -710,11 +728,12 @@ std::vector<SizeType> Logic2048_tm<Arch, MetaType, SizeType, Dimension, Dimensio
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
-float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateEmpty2D(const std::vector<meta_type_>& data)
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateEmpty2D(const std::vector<meta_type_> &data)
 {
     int empty = 0;
-    for (const auto& v : data) {
+    for (const auto &v : data)
+    {
         if (v == static_cast<meta_type_>(0))
             ++empty;
     }
@@ -722,11 +741,12 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
-float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateMaxNum2D(const std::vector<meta_type_>& data)
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateMaxNum2D(const std::vector<meta_type_> &data)
 {
-    auto mx = static_cast<meta_type_>(0);
-    for (const auto& v : data) {
+    meta_type_ mx = static_cast<meta_type_>(0);
+    for (const auto &v : data)
+    {
         if (v > mx)
             mx = v;
     }
@@ -734,36 +754,43 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateSmoothness2D(
-    const std::vector<meta_type_>& data,
+    const std::vector<meta_type_> &data,
     const size_type_ size)
 {
-    auto idx = [size](const size_type_ r, const size_type_ c) {
+    auto idx = [size](const size_type_ r, const size_type_ c)
+    {
         return static_cast<size_type_>(r * size + c);
     };
 
     float smooth = 0.0f;
-    for (size_type_ i = 0; i < size; ++i) {
-        for (size_type_ j = 0; j < size; ++j) {
+    for (size_type_ i = 0; i < size; ++i)
+    {
+        for (size_type_ j = 0; j < size; ++j)
+        {
             const auto v = data[idx(i, j)];
             if (v == static_cast<meta_type_>(0))
                 continue;
 
             const float val = std::log2f(static_cast<float>(v) + 1.0f);
-            if (i + 1 < size) {
+            if (i + 1 < size)
+            {
                 const float v2 = std::log2f(static_cast<float>(data[idx(i + 1, j)]) + 1.0f);
                 smooth -= std::fabs(v2 - val);
             }
-            if (j + 1 < size) {
+            if (j + 1 < size)
+            {
                 const float v2 = std::log2f(static_cast<float>(data[idx(i, j + 1)]) + 1.0f);
                 smooth -= std::fabs(v2 - val);
             }
-            if (i > 0) {
+            if (i > 0)
+            {
                 const float v2 = std::log2f(static_cast<float>(data[idx(i - 1, j)]) + 1.0f);
                 smooth -= std::fabs(v2 - val);
             }
-            if (j > 0) {
+            if (j > 0)
+            {
                 const float v2 = std::log2f(static_cast<float>(data[idx(i, j - 1)]) + 1.0f);
                 smooth -= std::fabs(v2 - val);
             }
@@ -773,21 +800,24 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateMonotonicity2D(
-    const std::vector<meta_type_>& data,
+    const std::vector<meta_type_> &data,
     const size_type_ size)
 {
-    auto idx = [size](const size_type_ r, const size_type_ c) {
+    auto idx = [size](const size_type_ r, const size_type_ c)
+    {
         return static_cast<size_type_>(r * size + c);
     };
 
     float totals[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-    for (size_type_ i = 0; i < size; ++i) {
+    for (size_type_ i = 0; i < size; ++i)
+    {
         size_type_ current = 0;
         size_type_ next = current + 1;
-        while (next < size) {
+        while (next < size)
+        {
             while (next < size && data[idx(i, next)] == static_cast<meta_type_>(0))
                 ++next;
             if (next >= size)
@@ -810,10 +840,12 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
         }
     }
 
-    for (size_type_ j = 0; j < size; ++j) {
+    for (size_type_ j = 0; j < size; ++j)
+    {
         size_type_ current = 0;
         size_type_ next = current + 1;
-        while (next < size) {
+        while (next < size)
+        {
             while (next < size && data[idx(next, j)] == static_cast<meta_type_>(0))
                 ++next;
             if (next >= size)
@@ -842,14 +874,14 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::markIsland2D(
-    const std::vector<meta_type_>& data,
+    const std::vector<meta_type_> &data,
     const int size,
     const int x,
     const int y,
     const meta_type_ value,
-    std::vector<std::uint8_t>& marked)
+    std::vector<std::uint8_t> &marked)
 {
     if (x < 0 || x >= size || y < 0 || y >= size)
         return;
@@ -866,25 +898,29 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::markIs
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateIslands2D(
-    const std::vector<meta_type_>& data,
+    const std::vector<meta_type_> &data,
     const size_type_ size)
 {
     const auto total = static_cast<size_type_>(size * size);
     std::vector<std::uint8_t> marked(static_cast<std::size_t>(total), 1);
 
-    for (size_type_ i = 0; i < total; ++i) {
+    for (size_type_ i = 0; i < total; ++i)
+    {
         if (data[i] != static_cast<meta_type_>(0))
             marked[i] = 0;
     }
 
     float islands = 0.0f;
     const int sizeInt = static_cast<int>(size);
-    for (int r = 0; r < sizeInt; ++r) {
-        for (int c = 0; c < sizeInt; ++c) {
+    for (int r = 0; r < sizeInt; ++r)
+    {
+        for (int c = 0; c < sizeInt; ++c)
+        {
             const auto index = static_cast<size_type_>(r * sizeInt + c);
-            if (data[index] != static_cast<meta_type_>(0) && marked[index] == 0) {
+            if (data[index] != static_cast<meta_type_>(0) && marked[index] == 0)
+            {
                 islands += 1.0f;
                 markIsland2D(data, sizeInt, r, c, data[index], marked);
             }
@@ -895,9 +931,9 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calculateEvaluation2D(
-    const std::vector<meta_type_>& data,
+    const std::vector<meta_type_> &data,
     const size_type_ size)
 {
     const float empty = calculateEmpty2D(data);
@@ -913,7 +949,7 @@ float Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::calcu
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::searchBest2D(
     Logic2048_tm board,
     int depth,
@@ -924,31 +960,37 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
 {
     AiSearchResult2D result;
 
-    if (playerTurn) {
+    if (playerTurn)
+    {
         float bestScore = alpha;
         int bestMove = -1;
 
-        for (int direction = 0; direction < 4; ++direction) {
+        for (int direction = 0; direction < 4; ++direction)
+        {
             Logic2048_tm next = board;
             const bool changed = applyMoveNoSpawn2D(next, direction);
             if (!changed)
                 continue;
 
             AiSearchResult2D sub;
-            if (depth == 0) {
+            if (depth == 0)
+            {
                 sub.move = direction;
                 sub.score = calculateEvaluation2D(next.flatData(), size);
             }
-            else {
+            else
+            {
                 sub = searchBest2D(next, depth - 1, bestScore, beta, false, size);
             }
 
-            if (sub.score > bestScore) {
+            if (sub.score > bestScore)
+            {
                 bestScore = sub.score;
                 bestMove = direction;
             }
 
-            if (bestScore > beta) {
+            if (bestScore > beta)
+            {
                 result.move = bestMove;
                 result.score = beta;
                 return result;
@@ -962,7 +1004,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
 
     float bestScore = beta;
     const auto empty = freeCells2D(board);
-    if (empty.empty()) {
+    if (empty.empty())
+    {
         result.move = -1;
         result.score = calculateEvaluation2D(board.flatData(), size);
         return result;
@@ -970,7 +1013,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
 
     std::vector<float> score2(empty.size(), -FLT_MAX);
     std::vector<float> score4(empty.size(), -FLT_MAX);
-    for (std::size_t i = 0; i < empty.size(); ++i) {
+    for (std::size_t i = 0; i < empty.size(); ++i)
+    {
         Logic2048_tm t2 = board;
         if (setFlatCell2D(t2, empty[i], static_cast<meta_type_>(2)))
             score2[i] = -calculateSmoothness2D(t2.flatData(), size) + calculateIslands2D(t2.flatData(), size);
@@ -981,7 +1025,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
     }
 
     float maxScore = -FLT_MAX;
-    for (std::size_t i = 0; i < empty.size(); ++i) {
+    for (std::size_t i = 0; i < empty.size(); ++i)
+    {
         if (score2[i] > maxScore)
             maxScore = score2[i];
         if (score4[i] > maxScore)
@@ -996,14 +1041,16 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
 
     std::vector<WorstCase2D> worst;
     worst.reserve(empty.size() * 2);
-    for (std::size_t i = 0; i < empty.size(); ++i) {
+    for (std::size_t i = 0; i < empty.size(); ++i)
+    {
         if (score2[i] == maxScore)
             worst.push_back(WorstCase2D{empty[i], static_cast<meta_type_>(2)});
         if (score4[i] == maxScore)
             worst.push_back(WorstCase2D{empty[i], static_cast<meta_type_>(4)});
     }
 
-    for (const auto& w : worst) {
+    for (const auto &w : worst)
+    {
         Logic2048_tm next = board;
         if (!setFlatCell2D(next, w.index, w.value))
             continue;
@@ -1012,7 +1059,8 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
         if (sub.score < bestScore)
             bestScore = sub.score;
 
-        if (bestScore < alpha) {
+        if (bestScore < alpha)
+        {
             result.move = -1;
             result.score = alpha;
             return result;
@@ -1025,13 +1073,15 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::search
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 int Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::getBestMove2D(int depth) const
 {
-    if constexpr (Dimension != 2) {
+    if constexpr (Dimension != 2)
+    {
         return -1;
     }
-    else {
+    else
+    {
         const size_type_ size = sizes_[0];
         int localDepth = depth;
         if (localDepth < 0)
@@ -1040,20 +1090,23 @@ int Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::getBest
         Logic2048_tm board = *this;
         auto result = searchBest2D(board, localDepth, -1000000.0f, 1000000.0f, true, size);
 
-        while (localDepth > 0) {
+        while (localDepth > 0)
+        {
             if (result.move == -1)
                 result = searchBest2D(board, --localDepth, -1000000.0f, 1000000.0f, true, size);
             else
                 break;
         }
 
-        if (result.move != -1) {
+        if (result.move != -1)
+        {
             Logic2048_tm test = board;
             if (applyMoveNoSpawn2D(test, result.move))
                 return result.move;
         }
 
-        for (int d = 0; d < 4; ++d) {
+        for (int d = 0; d < 4; ++d)
+        {
             Logic2048_tm test = board;
             if (applyMoveNoSpawn2D(test, d))
                 return d;
@@ -1063,14 +1116,16 @@ int Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::getBest
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operateBestMoveAndSpawnTrace2D(
     const int depth) -> MoveTrace
 {
-    if constexpr (Dimension != 2) {
+    if constexpr (Dimension != 2)
+    {
         return MoveTrace{};
     }
-    else {
+    else
+    {
         const int move = getBestMove2D(depth);
         size_type_ dim = 0;
         MoveDirection dir = MoveDirection::Negative;
@@ -1081,7 +1136,7 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::operat
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::sampleNewTileValue() -> meta_type_
 {
     // 90% -> 2, 10% -> 4
@@ -1090,13 +1145,14 @@ auto Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::sample
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile()
 {
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -1110,13 +1166,14 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnR
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
-bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace& out)
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnRandomTile(SpawnTrace &out)
 {
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -1134,28 +1191,31 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::spawnR
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 template <typename OutputStream>
-void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::outputData(OutputStream& out)
+void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::outputData(OutputStream &out)
 {
     printTensor<meta_type_, OutputStream, Dimension>(m_data, out, 0);
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 template <typename T, typename OutputStream, size_t NDims>
 void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::printTensor(
-    const Eigen::Tensor<T, NDims, Eigen::RowMajor>& tensor, OutputStream& out,
+    const Eigen::Tensor<T, NDims, Eigen::RowMajor> &tensor, OutputStream &out,
     int indent)
 {
     std::string prefix(indent, ' ');
-    if constexpr (NDims == 1) {
+    if constexpr (NDims == 1)
+    {
         for (int i = 0; i < tensor.dimension(0); ++i)
             out << prefix << tensor(i) << " ";
         out << "\n";
     }
-    else {
-        for (int i = 0; i < tensor.dimension(0); ++i) {
+    else
+    {
+        for (int i = 0; i < tensor.dimension(0); ++i)
+        {
             out << prefix << "[Slice " << i << "]\n";
             auto slice = tensor.chip(i, 0); // 沿第0维切片，偏移量为i
             printTensor<T, OutputStream, NDims - 1>(slice, out, indent + 2);
@@ -1164,19 +1224,20 @@ void Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::printT
 }
 
 template <std::uint64_t Arch, typename MetaType, ValidSizeType SizeType, SizeType Dimension, SizeType... DimensionSize>
-requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
+    requires ValidTensorSize<SizeType, Dimension, DimensionSize...>
 template <template <typename Val_T, typename...> typename Container>
 bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRandomLocationValue(
-    size_t numCount, const Container<meta_type_>& presetValues)
+    size_t numCount, const Container<meta_type_> &presetValues)
 {
     if (numCount == 0)
         return true;
 
-    meta_type_* raw = m_data.data();
+    meta_type_ *raw = m_data.data();
 
     std::vector<size_type_> empties;
     empties.reserve(static_cast<std::size_t>(total_elems_));
-    for (size_type_ i = 0; i < total_elems_; ++i) {
+    for (size_type_ i = 0; i < total_elems_; ++i)
+    {
         if (raw[i] == static_cast<meta_type_>(0))
             empties.push_back(i);
     }
@@ -1193,7 +1254,8 @@ bool Logic2048_tm<Arch, MetaType, SizeType, Dimension, DimensionSize...>::setRan
     std::uniform_int_distribution<std::size_t> presetPick(0, presetCount - 1);
 
     const std::size_t actualCount = std::min<std::size_t>(numCount, empties.size());
-    for (std::size_t n = 0; n < actualCount; ++n) {
+    for (std::size_t n = 0; n < actualCount; ++n)
+    {
         const auto cell = empties[n];
         const auto pvIndex = presetPick(m_rng);
         auto it = presetValues.begin();

@@ -12,9 +12,15 @@ ApplicationWindow {
     visible: true
     title: "2048 Quick"
 
-    Material.theme: Material.Dark
-    Material.primary: Material.BlueGrey
-    Material.accent: Material.DeepPurple
+    ThemeController {
+        id: themeController
+    }
+
+    readonly property var t: themeController;
+
+    Material.theme: t.isDark ? Material.Dark : Material.Light
+    Material.primary: t.isDark ? Material.BlueGrey : Material.Indigo
+    Material.accent: t.isDark ? Material.DeepPurple : Material.Blue
 
     property int selectedIndex: 0
     property int oldSelectedIndex: 0
@@ -22,7 +28,7 @@ ApplicationWindow {
     property int maxScore: 0
 
     readonly property bool isCustomMode: selectedIndex < 0
-    readonly property var selectedMode: (!isCustomMode && selectedIndex >= 0 && selectedIndex < modeModel.count) ? modeModel.get(selectedIndex) : null
+    readonly property var selectedMode: (!isCustomMode && selectedIndex >= 0 && selectedIndex < modeModel.count) ? modeModel.get(selectedIndex) : null;
 
 
     Connections{
@@ -39,6 +45,8 @@ ApplicationWindow {
             var component = Qt.createComponent("GameOverDialog.qml");
             if (component.status === Component.Ready) {
                 var dialog = component.createObject(root);
+                if (dialog && dialog.themeController !== undefined)
+                    dialog.themeController = themeController;
                 dialog.open();
             }
 
@@ -47,7 +55,7 @@ ApplicationWindow {
 
     function saveDataWhenSelectedIndexChanged(){
         if (game2048 && game2048.saveData_emitted){
-            game2048.saveData_emitted(root.oldSelectedIndex)
+            game2048.saveData_emitted(root.oldSelectedIndex);
         }
         // console.log("Save Data")
     }
@@ -131,6 +139,8 @@ ApplicationWindow {
         //! @brief @ref boardLoader: 用于动态加载棋盘。如果其尚未初始化或初始化失败，则无返回值
         if (!boardLoader || !boardLoader.item)
             return;
+        if (boardLoader.item.themeController !== undefined)
+            boardLoader.item.themeController = themeController;
         if (mode.dims === 2) {
 
             // 2D/3D 切换瞬间 boardLoader.item 可能还是旧组件（例如 Board3D）。
@@ -196,15 +206,15 @@ ApplicationWindow {
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: "#0b0f19"
+                color: t.windowGradientTop
             }
             GradientStop {
                 position: 0.55
-                color: "#0a1020"
+                color: t.windowGradientMid
             }
             GradientStop {
                 position: 1.0
-                color: "#060912"
+                color: t.windowGradientBottom
             }
         }
     }
@@ -212,8 +222,8 @@ ApplicationWindow {
     // 半透明的黑色遮罩层，覆盖整个父容器
     Rectangle {
         anchors.fill: parent
-        color: "#000000" // 纯黑色
-        opacity: 0.12 // 12% 不透明度
+        color: t.windowOverlayColor
+        opacity: t.windowOverlayOpacity
 
         /*
         这行代码启用了 QML 的“离屏渲染”功能。它将这个 Rectangle 及其所有子元素渲染到一个独立的图像层上，然后再将这个图像层合成到主场景中。
@@ -235,8 +245,8 @@ ApplicationWindow {
             Layout.preferredWidth: 420 // 基准线为“最优”，可以变小直到 minimum，也可以变大直到 maximum
             Layout.fillHeight: true // 占满高度，可参考 QWidget 中的布局设置
             radius: 18 // 圆角半径
-            color: "#111827"
-            border.color: "#2a3446"
+            color: t.surfaceStrong
+            border.color: t.border
             border.width: 1 // 边框
 
             // 垂直排列的组件布局管理
@@ -255,14 +265,14 @@ ApplicationWindow {
                         text: "2048 Quick"
                         font.pixelSize: 28
                         font.weight: Font.DemiBold
-                        color: "#e5e7eb"
+                        color: t.textPrimary
                     }
                     Text {
                         anchors.left: parent.left
                         anchors.bottom: parent.bottom
                         text: "选择模式"
                         font.pixelSize: 13
-                        color: "#9ca3af"
+                        color: t.textMuted
                     }
                 }
 
@@ -270,7 +280,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#1f2937"
+                    color: t.separator
                 }
 
                 // 一段文字栏
@@ -279,7 +289,7 @@ ApplicationWindow {
                     text: "模式"
                     font.pixelSize: 14
                     font.weight: Font.Medium
-                    color: "#cbd5e1"
+                    color: t.textSecondary
                 }
 
                 // 列表视图
@@ -305,9 +315,9 @@ ApplicationWindow {
                         width: modeList.width
                         height: 86
                         radius: 14
-                        color: (ListView.isCurrentItem ? "#1f2a44" : "#0f172a") // 选中与未选中呈现不同的颜色
+                        color: (ListView.isCurrentItem ? t.accentSoft : t.surface) // 选中与未选中呈现不同的颜色
                         border.width: 1
-                        border.color: (ListView.isCurrentItem ? "#6d28d9" : "#23304a")
+                        border.color: (ListView.isCurrentItem ? t.accent : t.borderStrong)
 
                         property bool hovered: false // 用来记录鼠标是否悬停在这个卡片上。
 
@@ -356,11 +366,11 @@ ApplicationWindow {
                             gradient: Gradient {
                                 GradientStop {
                                     position: 0.0
-                                    color: tile.hovered ? "#131d34" : "#0f172a"
+                                    color: tile.hovered ? t.modeTileHoverTop : t.surface
                                 }
                                 GradientStop {
                                     position: 1.0
-                                    color: tile.hovered ? "#0b1223" : "#0a1020"
+                                    color: tile.hovered ? t.modeTileHoverBottom : t.surfaceAlt
                                 }
                             }
                             opacity: 0.95
@@ -375,15 +385,15 @@ ApplicationWindow {
                                 Layout.preferredWidth: 46
                                 Layout.preferredHeight: 46
                                 radius: 12
-                                color: ListView.isCurrentItem ? "#6d28d9" : "#111827"
+                                color: ListView.isCurrentItem ? t.accent : t.surfaceStrong
                                 border.width: 1
-                                border.color: ListView.isCurrentItem ? "#a78bfa" : "#2a3446"
+                                border.color: ListView.isCurrentItem ? t.accentBorder : t.border
                                 Text {
                                     anchors.centerIn: parent
                                     text: (dims === 2) ? "2D" : "3D"
                                     font.pixelSize: 14
                                     font.weight: Font.Bold
-                                    color: "#e5e7eb"
+                                    color: t.textPrimary
                                 }
                             }
 
@@ -395,7 +405,7 @@ ApplicationWindow {
                                     text: title //! @ref ListModel
                                     font.pixelSize: 18
                                     font.weight: Font.DemiBold
-                                    color: "#e5e7eb"
+                                    color: t.textPrimary
                                     elide: Text.ElideRight
                                 }
                                 RowLayout {
@@ -405,22 +415,22 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         text: subtitle
                                         font.pixelSize: 13
-                                        color: "#9ca3af"
+                                        color: t.textMuted
                                         elide: Text.ElideRight
                                     }
                                     Rectangle {
                                         Layout.preferredHeight: 22
                                         radius: 11
-                                        color: ListView.isCurrentItem ? "#2e1065" : "#111827"
+                                        color: ListView.isCurrentItem ? t.accentSoft : t.chipBg
                                         border.width: 1
-                                        border.color: ListView.isCurrentItem ? "#a78bfa" : "#2a3446"
+                                        border.color: ListView.isCurrentItem ? t.accentBorder : t.chipBorder
                                         width: chip.implicitWidth + 16
                                         Text {
                                             id: chip
                                             anchors.centerIn: parent
                                             text: root.chipText(dims, size, depth)
                                             font.pixelSize: 11
-                                            color: "#cbd5e1"
+                                            color: t.textSecondary
                                         }
                                     }
                                 }
@@ -434,8 +444,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     text: "自定义尺寸"
                     onClicked: root.selectedIndex = -1
-                    Material.background: "#0f172a"
-                    Material.foreground: "#e5e7eb"
+                    Material.background: t.surface
+                    Material.foreground: t.textPrimary
                 }
             }
         }
@@ -446,8 +456,8 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 18
-            color: "#0b1220"
-            border.color: "#273244"
+            color: t.surfaceAlt
+            border.color: t.borderStrong
             border.width: 1
 
             ColumnLayout {
@@ -467,23 +477,116 @@ ApplicationWindow {
                             text: root.isCustomMode ? "自定义模式" : (root.selectedMode ? ("模式预览 · " + root.selectedMode.title) : "模式预览")
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
-                            color: "#e5e7eb"
+                            color: t.textPrimary
                             elide: Text.ElideRight
                         }
                         Text {
                             Layout.fillWidth: true
                             text: root.isCustomMode ? "这里可以放置自定义尺寸输入UI" : (root.selectedMode ? root.selectedMode.subtitle : "—")
                             font.pixelSize: 13
-                            color: "#9ca3af"
+                            color: t.textMuted
                             elide: Text.ElideRight
+                        }
+                    }
+
+                    ComboBox {
+                        id: themeCombo
+                        Layout.preferredWidth: 140
+                        Layout.preferredHeight: 34
+                        model: t.themeModel
+                        textRole: "name"
+                        valueRole: "key"
+                        onActivated: t.setThemeByKey(currentValue)
+
+                        function syncFromTheme() {
+                            var idx = themeCombo.indexOfValue(t.currentThemeKey);
+                            if (idx >= 0 && idx !== themeCombo.currentIndex)
+                                themeCombo.currentIndex = idx;
+                        }
+
+                        Component.onCompleted: Qt.callLater(syncFromTheme)
+                        onModelChanged: syncFromTheme()
+
+                        Connections {
+                            target: t
+                            function onCurrentThemeKeyChanged() {
+                                themeCombo.syncFromTheme();
+                            }
+                        }
+
+                        Material.background: t.comboMaterialBg
+                        Material.foreground: t.textPrimary
+
+                        contentItem: Text {
+                            leftPadding: 10
+                            rightPadding: 26
+                            text: themeCombo.displayText
+                            color: t.textPrimary
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                            font.pixelSize: 14
+                        }
+
+                        indicator: Text {
+                            x: themeCombo.width - width - 10
+                            y: (themeCombo.height - height) / 2
+                            text: "▼"
+                            color: t.textMuted
+                            font.pixelSize: 10
+                        }
+
+                        background: Rectangle {
+                            radius: 10
+                            color: t.comboBg
+                            border.width: 1
+                            border.color: t.isDark ? t.borderStrong : t.border
+                        }
+
+                        popup: Popup {
+                            y: themeCombo.height + 4
+                            width: themeCombo.width
+                            padding: 4
+
+                            background: Rectangle {
+                                radius: 10
+                                color: t.comboPopupBg
+                                border.width: 1
+                                border.color: t.isDark ? t.borderStrong : t.border
+                            }
+
+                            contentItem: ListView {
+                                clip: true
+                                implicitHeight: contentHeight
+                                model: themeCombo.popup.visible ? themeCombo.delegateModel : null
+                                currentIndex: themeCombo.highlightedIndex
+
+                                delegate: ItemDelegate {
+                                    width: themeCombo.width - 8
+                                    height: 38
+                                    highlighted: themeCombo.highlightedIndex === index
+
+                                    contentItem: Text {
+                                        text: (name !== undefined) ? name : ""
+                                        color: t.textPrimary
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 14
+                                    }
+
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: highlighted ? t.accentSoft : "transparent"
+                                    }
+                                }
+                            }
                         }
                     }
 
                     Rectangle {
                         Layout.preferredHeight: 34
                         radius: 17
-                        color: "#0f172a"
-                        border.color: "#2a3446"
+                        color: t.surface
+                        border.color: t.border
                         border.width: 1
                         RowLayout {
                             anchors.fill: parent
@@ -493,12 +596,12 @@ ApplicationWindow {
                                 Layout.preferredWidth: 8
                                 Layout.preferredHeight: 8
                                 radius: 4
-                                color: root.isCustomMode ? "#f59e0b" : "#22c55e"
+                                color: root.isCustomMode ? t.warning : t.success
                             }
                             Text {
                                 text: root.isCustomMode ? "待配置" : "就绪"
                                 font.pixelSize: 12
-                                color: "#cbd5e1"
+                                color: t.textSecondary
                             }
                         }
                     }
@@ -508,7 +611,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#1f2937"
+                    color: t.separator
                 }
 
                 Rectangle {
@@ -516,8 +619,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: 18
-                    color: "#0f172a"
-                    border.color: "#273244"
+                    color: t.surface
+                    border.color: t.borderStrong
                     border.width: 1
 
                     Item {
@@ -536,8 +639,8 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 84
                                     radius: 16
-                                    color: "#0b1220"
-                                    border.color: "#22304a"
+                                    color: t.surfaceAlt
+                                    border.color: t.borderStrong
                                     border.width: 1
                                     RowLayout {
                                         anchors.fill: parent
@@ -550,13 +653,13 @@ ApplicationWindow {
                                             Text {
                                                 text: "展示信息"
                                                 font.pixelSize: 12
-                                                color: "#9ca3af"
+                                                color: t.textMuted
                                             }
                                             Text {
                                                 text: root.isCustomMode ? "自定义尺寸" : (root.selectedMode ? root.chipText(root.selectedMode.dims, root.selectedMode.size, root.selectedMode.depth) : "—")
                                                 font.pixelSize: 18
                                                 font.weight: Font.DemiBold
-                                                color: "#e5e7eb"
+                                                color: t.textPrimary
                                             }
                                         }
 
@@ -566,35 +669,35 @@ ApplicationWindow {
                                             Text {
                                                 text: "Score / Best"
                                                 font.pixelSize: 12
-                                                color: "#9ca3af"
+                                                color: t.textMuted
                                             }
                                             RowLayout {
                                                 spacing: 10
                                                 Rectangle {
                                                     radius: 12
-                                                    color: "#111827"
-                                                    border.color: "#2a3446"
+                                                    color: t.chipBg
+                                                    border.color: t.chipBorder
                                                     border.width: 1
                                                     Layout.preferredHeight: 34
                                                     Layout.preferredWidth: 100
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: root.currentScore
-                                                        color: "#e5e7eb"
+                                                        color: t.textPrimary
                                                         font.pixelSize: 14
                                                     }
                                                 }
                                                 Rectangle {
                                                     radius: 12
-                                                    color: "#111827"
-                                                    border.color: "#2a3446"
+                                                    color: t.chipBg
+                                                    border.color: t.chipBorder
                                                     border.width: 1
                                                     Layout.preferredHeight: 34
                                                     Layout.preferredWidth: 100
                                                     Text {
                                                         anchors.centerIn: parent
                                                         text: root.maxScore
-                                                        color: "#e5e7eb"
+                                                        color: t.textPrimary
                                                         font.pixelSize: 14
                                                     }
                                                 }
@@ -621,8 +724,8 @@ ApplicationWindow {
                                                     root.currentScore = info[1];
                                                 }
                                             }
-                                            Material.background: "#0f172a"
-                                            Material.foreground: "#e5e7eb"
+                                            Material.background: t.surface
+                                            Material.foreground: t.textPrimary
                                         }
 
                                         Button {
@@ -640,8 +743,8 @@ ApplicationWindow {
                                                         boardLoader.item.forceActiveFocus();
                                                 });
                                             }
-                                            Material.background: "#0f172a"
-                                            Material.foreground: "#e5e7eb"
+                                            Material.background: t.surface
+                                            Material.foreground: t.textPrimary
                                         }
 
                                         KeyHintWidget {
@@ -649,6 +752,7 @@ ApplicationWindow {
                                             Layout.alignment: Qt.AlignVCenter
                                             visible: !root.isCustomMode && root.selectedMode
                                             dims: root.selectedMode ? root.selectedMode.dims : 2
+                                            themeController: t
                                             sourceCamera: (root.selectedMode && root.selectedMode.dims === 3 && boardLoader.item && boardLoader.item.viewCamera) ? boardLoader.item.viewCamera : null
                                         }
                                     }
@@ -684,8 +788,8 @@ ApplicationWindow {
                                     anchors.fill: parent
                                     visible: boardLoader.status === Loader.Error
                                     radius: 18
-                                    color: "#0b1220"
-                                    border.color: "#7f1d1d"
+                                    color: t.surfaceAlt
+                                    border.color: t.dangerSoft
                                     border.width: 1
                                     ColumnLayout {
                                         anchors.fill: parent
@@ -695,14 +799,14 @@ ApplicationWindow {
                                             text: "棋盘加载失败"
                                             font.pixelSize: 18
                                             font.weight: Font.DemiBold
-                                            color: "#fecaca"
+                                            color: t.dangerText
                                         }
                                         Text {
                                             Layout.fillWidth: true
                                             text: (boardLoader.errorString !== undefined && boardLoader.errorString !== null) ? String(boardLoader.errorString) : ""
                                             wrapMode: Text.WordWrap
                                             font.pixelSize: 12
-                                            color: "#fca5a5"
+                                            color: t.danger
                                         }
                                     }
                                 }
@@ -718,9 +822,9 @@ ApplicationWindow {
                         width: 560
                         height: 360
                         radius: 18
-                        color: "#0b1220"
+                        color: t.surfaceAlt
                         border.width: 1
-                        border.color: "#22304a"
+                        border.color: t.borderStrong
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 20
@@ -729,25 +833,25 @@ ApplicationWindow {
                                 text: "自定义尺寸"
                                 font.pixelSize: 20
                                 font.weight: Font.DemiBold
-                                color: "#e5e7eb"
+                                color: t.textPrimary
                             }
                             Text {
                                 text: "本次按你的要求只搭界面：这里预留自定义尺寸的输入面板位置（例如 行/列/深度）。"
                                 wrapMode: Text.WordWrap
                                 font.pixelSize: 13
-                                color: "#9ca3af"
+                                color: t.textMuted
                             }
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 radius: 14
-                                color: "#0f172a"
-                                border.color: "#2a3446"
+                                color: t.surface
+                                border.color: t.border
                                 border.width: 1
                                 Text {
                                     anchors.centerIn: parent
                                     text: "[ 这里放输入控件 / 校验 / 保存按钮 —— 当前未实现 ]"
-                                    color: "#94a3b8"
+                                    color: t.textMuted
                                     font.pixelSize: 13
                                 }
                             }

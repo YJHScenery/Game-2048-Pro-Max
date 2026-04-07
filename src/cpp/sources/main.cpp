@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 
     QGuiApplication::setWindowIcon(QIcon(":/icon/logo.png"));
 
-    AITest()();
+    // AITest()();
     // run_random_game_test();
 
     // 创建 Game 对象
